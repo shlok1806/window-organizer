@@ -1,0 +1,9 @@
+# compiled spike binaries
+spike/wdump
+spike/wprobe
+
+# collected samples
+.window-spike/
+
+.DS_Store
+*.o
