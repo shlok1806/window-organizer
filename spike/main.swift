@@ -88,7 +88,7 @@ func exitFullscreenEverywhere() -> Int {
 
 // ---------- what is genuinely on screen ----------
 
-struct CGWin { let pid: pid_t; let owner: String; let rect: CGRect }
+struct CGWin { let id: Int; let pid: pid_t; let owner: String; let rect: CGRect }
 
 /// Mission Control and App Exposé are drawn by the Dock process as a full-screen
 /// layer-0 window, and while either is up CGWindowList reports THUMBNAIL geometry
@@ -112,7 +112,8 @@ func onScreenWindows(minSide: CGFloat = 80) -> [CGWin] {
               let bd = w[kCGWindowBounds as String] as? NSDictionary,
               let r = CGRect(dictionaryRepresentation: bd),
               r.width >= minSide, r.height >= minSide else { continue }
-        out.append(CGWin(pid: pid_t(w[kCGWindowOwnerPID as String] as? Int ?? -1),
+        out.append(CGWin(id: w[kCGWindowNumber as String] as? Int ?? 0,
+                         pid: pid_t(w[kCGWindowOwnerPID as String] as? Int ?? -1),
                          owner: w[kCGWindowOwnerName as String] as? String ?? "?",
                          rect: r))
     }
@@ -211,18 +212,45 @@ func collectWindows(_ onScreen: [CGWin]) -> [Win] {
         for w in wins {
             guard let p = axPoint(w, kAXPositionAttribute as String),
                   let s = axSize(w, kAXSizeAttribute as String),
-                  onScreen.contains(where: { $0.pid == pid && roughlyEqual($0.rect, CGRect(origin: p, size: s)) })
+                  // CG carries the stable window id; AX does not expose one. Matching on
+                  // pid plus geometry is how the two views are joined.
+                  let cg = onScreen.first(where: {
+                      $0.pid == pid && roughlyEqual($0.rect, CGRect(origin: p, size: s))
+                  })
             else { continue }
             // Fullscreen windows refuse every write and report their own size as a
             // minimum. Including them poisons the minimum-size cache. See AGENTS.md.
             if axBool(w, "AXFullScreen") == true { continue }
             guard axSettable(w, kAXPositionAttribute as String),
                   axSettable(w, kAXSizeAttribute as String) else { continue }
-            out.append(Win(app: app.localizedName ?? "?", title: axString(w, kAXTitleAttribute as String),
+            out.append(Win(id: cg.id,
+                           app: app.localizedName ?? "?", title: axString(w, kAXTitleAttribute as String),
                            el: w, origin: p, size: s))
         }
     }
     return out
+}
+
+/// The window the user is actually in - not merely the app they are in.
+///
+/// The frontmost *application* is easy to get; the frontmost *window* is not, and an
+/// app routinely has several. Resolving the hero by app name picks that app's first
+/// window, which is frequently not the focused one, so the master pane lands on a
+/// window the user is not looking at while the one they are typing in gets squeezed
+/// or stowed. See issue #6.
+func focusedWindow(among wins: [Win]) -> Win? {
+    guard let app = NSWorkspace.shared.frontmostApplication else { return nil }
+    var raw: CFTypeRef?
+    guard AXUIElementCopyAttributeValue(AXUIElementCreateApplication(app.processIdentifier),
+                                        kAXFocusedWindowAttribute as CFString, &raw) == .success,
+          let value = raw, CFGetTypeID(value) == AXUIElementGetTypeID() else { return nil }
+    let el = value as! AXUIElement
+    guard let p = axPoint(el, kAXPositionAttribute as String),
+          let s = axSize(el, kAXSizeAttribute as String) else { return nil }
+    let focused = CGRect(origin: p, size: s)
+    return wins.first {
+        $0.app == app.localizedName && roughlyEqual(CGRect(origin: $0.origin, size: $0.size), focused)
+    }
 }
 
 // ---------- minimum sizes: measure once, cache forever ----------
@@ -368,10 +396,21 @@ let argv = Array(CommandLine.arguments.dropFirst())
 let spill = args.contains("--spill")
 let jsonOut = args.contains("--json")
 
-// Planning from a recording must be physically incapable of touching a window.
-let planFrom: String? = argv.firstIndex(of: "--plan-from").flatMap { i in
-    i + 1 < argv.count ? argv[i + 1] : nil
+/// The value of a flag that requires one. A flag present with a missing value - or
+/// whose value is itself another flag - is a usage error, not an absent flag.
+/// Treating it as absent is how `--apply --plan-from` silently became a LIVE
+/// rearrange dressed up as a replay. See issue #4.
+func flagValue(_ name: String) -> String? {
+    guard let i = argv.firstIndex(of: name) else { return nil }
+    guard i + 1 < argv.count, !argv[i + 1].hasPrefix("--") else {
+        FileHandle.standardError.write("\(name) requires a value\n".data(using: .utf8)!)
+        exit(2)
+    }
+    return argv[i + 1]
 }
+
+// Planning from a recording must be physically incapable of touching a window.
+let planFrom = flagValue("--plan-from")
 let apply = args.contains("--apply") && planFrom == nil
 
 if args.contains("--help") || args.contains("-h") {
@@ -506,9 +545,12 @@ guard !wins.isEmpty else {
 // Planning from a recording must not read the user's config: a test that depends on
 // whatever the operator last edited is not a test. Fixtures get the built-in defaults.
 let priorities = fixture == nil ? loadPriorities() : defaultPriorities
-var heroApp = fixture == nil ? NSWorkspace.shared.frontmostApplication?.localizedName
-                             : wins.first(where: { $0.focused })?.app
-if let i = argv.firstIndex(of: "--hero"), i + 1 < argv.count { heroApp = argv[i + 1] }
+// Resolve the hero WINDOW, never an app name. --hero names an app explicitly, so
+// first-of-that-app is the right reading there; everything else follows focus.
+var hero: Win? = fixture == nil ? focusedWindow(among: wins)
+                                : wins.first(where: { $0.focused })
+if let named = flagValue("--hero") { hero = wins.first(where: { $0.app == named }) }
+let heroApp = hero?.app
 
 for w in wins {
     w.prio = priorities[w.app] ?? Priority()
@@ -517,7 +559,7 @@ for w in wins {
     if w.prio.tier == "hero" { w.prio.tier = "normal" }
 }
 // Exactly one hero: the single window you are actually in.
-if let hero = wins.first(where: { $0.app == heroApp }) {
+if let hero {
     hero.prio.tier = "hero"
     hero.prio.weight = max(hero.prio.weight, 3.0)
     hero.prio.maxSize = nil                     // the hero is never capped

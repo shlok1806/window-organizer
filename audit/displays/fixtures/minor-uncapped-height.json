@@ -1,0 +1,12 @@
+{
+  "now": "2026-09-15T12:00:00Z",
+  "displays": [
+    { "idx": 0, "usable": { "x": 0, "y": 25, "w": 1280, "h": 775 } },
+    { "idx": 1, "usable": { "x": 1280, "y": 0, "w": 2560, "h": 1440 } }
+  ],
+  "focus": [],
+  "windows": [
+    { "id": 1, "app": "WezTerm", "title": "work", "rect": { "x": 0, "y": 25, "w": 1280, "h": 775 }, "minSize": { "w": 24, "h": 29 }, "focused": true },
+    { "id": 2, "app": "Slack", "title": "team", "rect": { "x": 100, "y": 100, "w": 600, "h": 500 }, "minSize": { "w": 300, "h": 300 }, "focused": false }
+  ]
+}

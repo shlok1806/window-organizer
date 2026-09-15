@@ -1,0 +1,13 @@
+{
+  "now": "2026-09-15T12:00:00Z",
+  "displays": [ { "idx": 0, "usable": { "x": 0, "y": 32, "w": 1728, "h": 1085 } } ],
+  "focus": [],
+  "windows": [
+    { "id": 1, "app": "Slack", "title": "team", "rect": { "x": 0, "y": 32, "w": 600, "h": 500 }, "minSize": { "w": 300, "h": 250 }, "focused": true },
+    { "id": 2, "app": "Messages", "title": "chat", "rect": { "x": 700, "y": 32, "w": 400, "h": 500 }, "minSize": { "w": 260, "h": 300 }, "focused": false },
+    { "id": 3, "app": "Discord", "title": "server", "rect": { "x": 0, "y": 550, "w": 600, "h": 500 }, "minSize": { "w": 300, "h": 250 }, "focused": false },
+    { "id": 4, "app": "Finder", "title": "Documents", "rect": { "x": 700, "y": 550, "w": 520, "h": 360 }, "minSize": { "w": 200, "h": 150 }, "focused": false },
+    { "id": 5, "app": "System Settings", "title": "settings", "rect": { "x": 1200, "y": 32, "w": 600, "h": 450 }, "minSize": { "w": 350, "h": 300 }, "focused": false },
+    { "id": 6, "app": "Calendar", "title": "September", "rect": { "x": 1200, "y": 550, "w": 700, "h": 500 }, "minSize": { "w": 400, "h": 300 }, "focused": false }
+  ]
+}

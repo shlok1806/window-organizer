@@ -1,0 +1,19 @@
+{
+  "now": "2026-09-15T12:00:00Z",
+  "displays": [
+    { "idx": 0, "usable": { "x": 0, "y": 32, "w": 1280, "h": 800 } },
+    { "idx": 1, "usable": { "x": 1280, "y": 0, "w": 1920, "h": 1080 } },
+    { "idx": 2, "usable": { "x": 3200, "y": 0, "w": 1024, "h": 768 } }
+  ],
+  "focus": [],
+  "windows": [
+    { "id": 1, "app": "WezTerm", "title": "work", "rect": { "x": 0, "y": 32, "w": 900, "h": 700 }, "minSize": { "w": 24, "h": 29 }, "focused": true },
+    { "id": 2, "app": "Cursor", "title": "editor", "rect": { "x": 100, "y": 100, "w": 900, "h": 700 }, "minSize": { "w": 24, "h": 29 }, "focused": false },
+    { "id": 3, "app": "Safari", "title": "docs", "rect": { "x": 200, "y": 200, "w": 900, "h": 600 }, "minSize": { "w": 200, "h": 150 }, "focused": false },
+    { "id": 4, "app": "Microsoft Outlook", "title": "mail", "rect": { "x": 300, "y": 300, "w": 900, "h": 600 }, "minSize": { "w": 200, "h": 150 }, "focused": false },
+    { "id": 5, "app": "Slack", "title": "team", "rect": { "x": 400, "y": 100, "w": 600, "h": 500 }, "minSize": { "w": 300, "h": 300 }, "focused": false },
+    { "id": 6, "app": "Discord", "title": "chat", "rect": { "x": 500, "y": 100, "w": 700, "h": 500 }, "minSize": { "w": 300, "h": 300 }, "focused": false },
+    { "id": 7, "app": "Music", "title": "player", "rect": { "x": 600, "y": 100, "w": 400, "h": 300 }, "minSize": { "w": 200, "h": 150 }, "focused": false },
+    { "id": 8, "app": "Spotify", "title": "player2", "rect": { "x": 700, "y": 100, "w": 400, "h": 300 }, "minSize": { "w": 200, "h": 150 }, "focused": false }
+  ]
+}

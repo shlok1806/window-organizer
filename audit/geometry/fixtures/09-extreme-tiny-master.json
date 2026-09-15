@@ -1,0 +1,10 @@
+{
+  "now": "2026-09-15T12:00:00Z",
+  "displays": [ { "idx": 0, "usable": { "x": 0, "y": 0, "w": 10, "h": 600 } } ],
+  "focus": [],
+  "windows": [
+    { "id": 1, "app": "WezTerm", "title": "work",
+      "rect": { "x": 0, "y": 0, "w": 10, "h": 600 },
+      "minSize": { "w": 1, "h": 1 }, "focused": true }
+  ]
+}

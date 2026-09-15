@@ -1,0 +1,9 @@
+{
+  "now": "2026-09-15T12:00:00Z",
+  "displays": [ { "idx": 0, "usable": { "x": 0, "y": 32, "w": 1728, "h": 1085 } } ],
+  "focus": [],
+  "windows": [
+    { "id": 1, "app": "UnknownAppA", "title": "A", "rect": { "x": 0, "y": 32, "w": 900, "h": 500 }, "minSize": { "w": 900, "h": 500 }, "focused": true },
+    { "id": 2, "app": "UnknownAppB", "title": "B", "rect": { "x": 900, "y": 32, "w": 900, "h": 577 }, "minSize": { "w": 900, "h": 577 }, "focused": false }
+  ]
+}

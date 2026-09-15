@@ -1,0 +1,49 @@
+{
+  "now": "2026-09-15T12:00:00Z",
+  "displays": [
+    {
+      "idx": 0,
+      "usable": {
+        "x": 0,
+        "y": 32,
+        "w": 1000,
+        "h": 1600
+      }
+    }
+  ],
+  "focus": [],
+  "windows": [
+    {
+      "id": 1,
+      "app": "WezTerm",
+      "title": "work",
+      "rect": {
+        "x": 0,
+        "y": 32,
+        "w": 640,
+        "h": 400
+      },
+      "minSize": {
+        "w": 24,
+        "h": 29
+      },
+      "focused": true
+    },
+    {
+      "id": 2,
+      "app": "Finder",
+      "title": "downloads",
+      "rect": {
+        "x": 0,
+        "y": 500,
+        "w": 700,
+        "h": 700
+      },
+      "minSize": {
+        "w": 700,
+        "h": 700
+      },
+      "focused": false
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "now": "2026-09-15T12:00:00Z",
+  "displays": [
+    {
+      "idx": 0,
+      "usable": {
+        "x": 0,
+        "y": 32,
+        "w": 1728,
+        "h": 1085
+      }
+    }
+  ],
+  "focus": [],
+  "windows": [
+    {
+      "id": 1,
+      "app": "Finder",
+      "title": "downloads",
+      "rect": {
+        "x": 500,
+        "y": 32,
+        "w": 520,
+        "h": 360
+      },
+      "minSize": {
+        "w": 459,
+        "h": 252
+      },
+      "focused": false
+    }
+  ]
+}
