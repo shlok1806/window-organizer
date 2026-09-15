@@ -1,0 +1,36 @@
+{
+  "_comment": "Reconstruction of a real hotkey press: three windows on a 1728x1085 laptop display, run with --master 0.6. The hero takes 1033px, leaving 687px of stack - narrower than VS Code's 800px useful width, so Code is stowed despite the desktop having ample room for all three without a master pane. The mirror image of issue #9: the slab is sized without asking whether the remainder can hold anyone.",
+  "now": "2026-09-15T16:37:16Z",
+  "displays": [
+    { "idx": 0, "usable": { "x": 0, "y": 32, "w": 1728, "h": 1085 } }
+  ],
+  "focus": [
+    { "id": 74, "at": "2026-09-15T16:36:32Z" }
+  ],
+  "windows": [
+    {
+      "id": 74,
+      "app": "WezTerm",
+      "title": "terminal",
+      "rect": { "x": 0, "y": 32, "w": 1033, "h": 1085 },
+      "minSize": { "w": 24, "h": 29 },
+      "focused": true
+    },
+    {
+      "id": 60,
+      "app": "Code",
+      "title": "editor",
+      "rect": { "x": 100, "y": 100, "w": 1200, "h": 800 },
+      "minSize": { "w": 400, "h": 270 },
+      "focused": false
+    },
+    {
+      "id": 54,
+      "app": "Claude",
+      "title": "chat",
+      "rect": { "x": 200, "y": 200, "w": 687, "h": 499 },
+      "minSize": { "w": 600, "h": 400 },
+      "focused": false
+    }
+  ]
+}
