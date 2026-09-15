@@ -23,7 +23,13 @@ for case_file in cases/*.json; do
         continue
     fi
 
-    got=$("$BIN" --plan-from "$case_file" --json 2>&1)
+    # A case may carry extra flags in a sibling .flags file, so behaviour that only
+    # appears under --spill or --master can be asserted like any other plan.
+    flags=""
+    [ -f "cases/$name.flags" ] && flags=$(cat "cases/$name.flags")
+
+    # shellcheck disable=SC2086
+    got=$("$BIN" --plan-from "$case_file" $flags --json 2>&1)
     # Normalise key order so formatting changes do not masquerade as failures.
     got_n=$(printf '%s' "$got" | jq -S -c . 2>/dev/null)
     exp_n=$(jq -S -c . < "$expected" 2>/dev/null)

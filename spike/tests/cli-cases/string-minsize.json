@@ -1,0 +1,18 @@
+{
+  "_comment": "minSize given as JSON strings rather than numbers. Silently reading it as 0x0 would tell the engine the window is infinitely shrinkable, which is load-bearing and wrong. Regression for issue #19.",
+  "now": "2026-09-15T10:00:00Z",
+  "displays": [
+    { "idx": 0, "usable": { "x": 0, "y": 0, "w": 1200, "h": 800 } }
+  ],
+  "focus": [],
+  "windows": [
+    {
+      "id": 1,
+      "app": "WezTerm",
+      "title": "minSize is strings",
+      "rect": { "x": 0, "y": 0, "w": 600, "h": 500 },
+      "minSize": { "w": "600", "h": "500" },
+      "focused": true
+    }
+  ]
+}

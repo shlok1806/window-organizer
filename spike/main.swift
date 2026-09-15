@@ -152,25 +152,39 @@ struct Fixture {
     let focus: [FocusEvent]
 }
 
-func fixtureRect(_ any: Any?) -> CGRect {
+/// Parse a rect, rejecting values that are present but not numeric. Coercing a string
+/// to 0 would tell the engine a window is infinitely shrinkable, which is load-bearing
+/// and wrong; silence is the worst possible response. See issue #19.
+func fixtureRect(_ any: Any?, field: String) -> CGRect {
     guard let r = any as? [String: Any] else { return .zero }
-    return CGRect(x: r["x"] as? Double ?? 0, y: r["y"] as? Double ?? 0,
-                  width: r["w"] as? Double ?? 0, height: r["h"] as? Double ?? 0)
+    func num(_ key: String) -> Double {
+        guard let v = r[key] else { return 0 }
+        guard let n = v as? NSNumber, !(v is String) else {
+            usageError("\(field).\(key) must be a number, got \(v)")
+        }
+        return n.doubleValue
+    }
+    return CGRect(x: num("x"), y: num("y"), width: num("w"), height: num("h"))
 }
 
 func loadFixture(_ path: String) -> Fixture? {
     guard let d = FileManager.default.contents(atPath: path),
           let j = (try? JSONSerialization.jsonObject(with: d)) as? [String: Any] else { return nil }
 
-    let displays = (j["displays"] as? [[String: Any]] ?? []).map { fixtureRect($0["usable"]) }
+    let displays = (j["displays"] as? [[String: Any]] ?? []).map { fixtureRect($0["usable"], field: "usable") }
     var wins: [Win] = []
+    var seenIDs = Set<Int>()
     for raw in j["windows"] as? [[String: Any]] ?? [] {
-        let r = fixtureRect(raw["rect"])
-        let w = Win(id: raw["id"] as? Int ?? 0,
+        let r = fixtureRect(raw["rect"], field: "rect")
+        let id = raw["id"] as? Int ?? 0
+        // Identity is load-bearing: recency scoring and the planned-versus-actual
+        // match both key on it, so a duplicate corrupts both silently.
+        if id != 0, !seenIDs.insert(id).inserted { usageError("duplicate window id \(id)") }
+        let w = Win(id: id,
                     app: raw["app"] as? String ?? "?",
                     title: raw["title"] as? String ?? "",
                     el: nil, origin: r.origin, size: r.size)
-        w.minSize = fixtureRect(raw["minSize"]).size
+        w.minSize = fixtureRect(raw["minSize"], field: "minSize").size
         w.focused = raw["focused"] as? Bool ?? false
         wins.append(w)
     }
@@ -185,9 +199,15 @@ func loadFixture(_ path: String) -> Fixture? {
 }
 
 func planJSON(_ wins: [Win]) -> String {
+    /// Round the EDGES, then derive size from them. Rounding origin and size
+    /// independently lets two adjacent rows both round up, pushing the last edge a
+    /// pixel outside the display; deriving size from rounded edges keeps neighbours
+    /// sharing an exact boundary and keeps the final edge where the float said it was.
+    /// See issue #18.
     func r(_ x: CGRect) -> [String: Int] {
-        ["x": Int(x.minX.rounded()), "y": Int(x.minY.rounded()),
-         "w": Int(x.width.rounded()), "h": Int(x.height.rounded())]
+        let x0 = safeInt(x.minX.rounded()), y0 = safeInt(x.minY.rounded())
+        let x1 = safeInt(x.maxX.rounded()), y1 = safeInt(x.maxY.rounded())
+        return ["x": x0, "y": y0, "w": x1 - x0, "h": y1 - y0]
     }
     let placements: [[String: Any]] = wins.compactMap { w in
         guard let p = w.placement else { return nil }
@@ -423,13 +443,33 @@ let jsonOut = args.contains("--json")
 /// whose value is itself another flag - is a usage error, not an absent flag.
 /// Treating it as absent is how `--apply --plan-from` silently became a LIVE
 /// rearrange dressed up as a replay. See issue #4.
+func usageError(_ message: String) -> Never {
+    FileHandle.standardError.write("warrange: \(message)\n".data(using: .utf8)!)
+    exit(2)
+}
+
 func flagValue(_ name: String) -> String? {
     guard let i = argv.firstIndex(of: name) else { return nil }
     guard i + 1 < argv.count, !argv[i + 1].hasPrefix("--") else {
-        FileHandle.standardError.write("\(name) requires a value\n".data(using: .utf8)!)
-        exit(2)
+        usageError("\(name) requires a value")
     }
     return argv[i + 1]
+}
+
+// A typo must not be indistinguishable from a correct command on a tool that moves
+// windows - silently ignoring an unrecognised flag is the same class of hole as a
+// missing flag value. See issue #16.
+let knownFlags: Set<String> = [
+    "--apply", "--undo", "--spill", "--json", "--help", "-h",
+    "--unfullscreen", "--master", "--hero", "--plan-from",
+]
+let valueFlags: Set<String> = ["--master", "--hero", "--plan-from"]
+var skipNext = false
+for (i, a) in argv.enumerated() {
+    if skipNext { skipNext = false; continue }
+    guard a.hasPrefix("-") else { continue }        // a bare word is a flag's value
+    guard knownFlags.contains(a) else { usageError("unknown flag \(a)") }
+    if valueFlags.contains(a), i + 1 < argv.count, !argv[i + 1].hasPrefix("--") { skipNext = true }
 }
 
 // Planning from a recording must be physically incapable of touching a window.
@@ -558,8 +598,14 @@ if fixture == nil {
 
 let wins = fixture?.wins ?? collectWindows(onScreenWindows())
 guard !wins.isEmpty else {
-    print("no windows on screen")
-    print("\(dim)(if you are in a fullscreen app, re-run with --unfullscreen)\(off)")
+    // --json means machine-readable on EVERY path, including the ones that exit
+    // early. Printing ANSI text here broke any script piping to jq. See issue #14.
+    if jsonOut {
+        print("{\"placements\":[],\"stowed\":[]}")
+    } else {
+        print("no windows on screen")
+        print("\(dim)(if you are in a fullscreen app, re-run with --unfullscreen)\(off)")
+    }
     exit(0)
 }
 
@@ -572,7 +618,14 @@ let priorities = fixture == nil ? loadPriorities() : defaultPriorities
 // first-of-that-app is the right reading there; everything else follows focus.
 var hero: Win? = fixture == nil ? focusedWindow(among: wins)
                                 : wins.first(where: { $0.focused })
-if let named = flagValue("--hero") { hero = wins.first(where: { $0.app == named }) }
+if let named = flagValue("--hero") {
+    // Silently stripping the hero while the header still names that app tells the
+    // user one thing and does another. See issue #15.
+    guard let match = wins.first(where: { $0.app == named }) else {
+        usageError("--hero \(named): no window of that app is on screen")
+    }
+    hero = match
+}
 let heroApp = hero?.app
 
 // Relevance from behaviour, not from what happens to be open. A replay carries its
@@ -644,6 +697,19 @@ for (i, area) in areas.enumerated() {
 
     var candidates = remaining
     var pushed: [Win] = []
+
+    // Banish tier means "send this to another display", not "keep it here unless the
+    // primary happens to overflow". Without this, a music player sits beside the hero
+    // while an empty second monitor goes unused - the exact scenario this tool exists
+    // to fix. See issue #13.
+    if spill, i < areas.count - 1 {
+        let banished = candidates.filter { $0.prio.tier == "banish" }
+        if !banished.isEmpty {
+            candidates.removeAll { $0.prio.tier == "banish" }
+            pushed.append(contentsOf: banished)
+        }
+    }
+    if candidates.isEmpty { remaining = pushed; continue }
 
     while !candidates.isEmpty {
         if let rows = pack(candidates, into: area) {
