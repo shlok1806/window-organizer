@@ -1,0 +1,26 @@
+{
+  "_comment": "The focused Xcode window needs 900px of useful width on an 850px display, so it can never be satisfied here. It must be stowed by itself, leaving the terminal the whole screen. Regression for issue #3, where an unsatisfiable hero caused every other window to be evicted one by one and then itself, emptying the desktop.",
+  "now": "2026-09-15T10:00:00Z",
+  "displays": [
+    { "idx": 0, "usable": { "x": 0, "y": 0, "w": 850, "h": 900 } }
+  ],
+  "focus": [],
+  "windows": [
+    {
+      "id": 1,
+      "app": "Xcode",
+      "title": "too wide for this display",
+      "rect": { "x": 0, "y": 0, "w": 800, "h": 800 },
+      "minSize": { "w": 10, "h": 10 },
+      "focused": true
+    },
+    {
+      "id": 2,
+      "app": "WezTerm",
+      "title": "fits comfortably",
+      "rect": { "x": 100, "y": 100, "w": 600, "h": 500 },
+      "minSize": { "w": 10, "h": 10 },
+      "focused": false
+    }
+  ]
+}

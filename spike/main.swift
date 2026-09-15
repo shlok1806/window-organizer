@@ -313,18 +313,20 @@ func usableDisplays() -> [CGRect] {
 
 struct Row { var items: [Win]; var minHeight: CGFloat }
 
+/// The smallest this window may be planned at. Useful size is policy, technical
+/// minimum is physics; where they disagree, physics wins. Nothing anywhere in the
+/// engine may place a window below this - not the packer, not a size cap, not the
+/// master slab.
+func effectiveSize(_ w: Win) -> CGSize {
+    CGSize(width: max(w.minSize.width, w.prio.usefulSize.width),
+           height: max(w.minSize.height, w.prio.usefulSize.height))
+}
+
 /// Shelf packing. Returns nil when the windows cannot fit without overlap -
 /// which is a real outcome, not an error.
 ///
 func pack(_ wins: [Win], into area: CGRect) -> [Row]? {
-    // Plan against USEFUL sizes, not technical minimums. A window that cannot be given
-    // a useful size is stowed by the caller rather than shrunk - there is no cramped
-    // fallback, because "present but unusable" is not a better outcome than "not here".
-    // Where the technical minimum is larger than the useful size, physics wins.
-    for w in wins {
-        w.packSize = CGSize(width: max(w.minSize.width, w.prio.usefulSize.width),
-                            height: max(w.minSize.height, w.prio.usefulSize.height))
-    }
+    for w in wins { w.packSize = effectiveSize(w) }
 
     // Highest priority first, so the hero lands in the top row rather than wherever
     // its pixel height happens to sort it.
@@ -376,7 +378,11 @@ func layout(_ rows: [Row], in area: CGRect, display: Int) {
                                pool: poolW)
         var x = area.minX
         for (ci, w) in row.items.enumerated() {
-            let h = min(heights[ri], w.prio.maxSize?.height ?? heights[ri])
+            // Apply the cap only ABOVE the floor. Clamping straight to the cap plans
+            // windows shorter than the app will accept, which then clamp larger and
+            // overlap their neighbours. See issue #8.
+            let floorH = effectiveSize(w).height
+            let h = max(floorH, min(heights[ri], w.prio.maxSize?.height ?? heights[ri]))
             w.placement = CGRect(x: x, y: y, width: widths[ci], height: h)
             w.display = display
             x += widths[ci] + GAP
@@ -390,6 +396,15 @@ func layout(_ rows: [Row], in area: CGRect, display: Int) {
 let dim = "\u{1B}[2m", bold = "\u{1B}[1m", off = "\u{1B}[0m"
 let red = "\u{1B}[31m", green = "\u{1B}[32m", yellow = "\u{1B}[33m"
 func col(_ s: String, _ n: Int) -> String { (s as NSString).padding(toLength: n, withPad: " ", startingAt: 0) }
+
+/// Int conversion that cannot trap. Geometry can legitimately carry a poisoned value:
+/// minSize is measured from live Accessibility queries and cached to disk, and Swift's
+/// `Int(_:)` traps on a non-finite or out-of-range Double rather than saturating. One
+/// bad measurement would otherwise crash every later run for that app. See issue #5.
+func safeInt(_ v: CGFloat) -> Int {
+    guard v.isFinite else { return 0 }
+    return Int(max(-1_000_000_000, min(1_000_000_000, v)))
+}
 
 let args = Set(CommandLine.arguments.dropFirst())
 let argv = Array(CommandLine.arguments.dropFirst())
@@ -621,11 +636,29 @@ for (i, area) in areas.enumerated() {
             placedAnywhere = true
             break
         }
+        // A window that cannot fit this display even alone can never be satisfied here,
+        // and it fails every packing attempt for everyone. Evict it specifically, ahead
+        // of priority - otherwise an unsatisfiable hero drags every other window out one
+        // by one and empties the desktop. See issue #3.
+        if let impossible = candidates.first(where: {
+            let e = effectiveSize($0)
+            return e.width > area.width || e.height > area.height
+        }) {
+            candidates.removeAll { $0 === impossible }
+            pushed.append(impossible)
+            continue
+        }
+
         // Too much for this display: move the LEAST important window onward, not the
-        // biggest. Banished apps leave first; the hero is the last thing to go.
+        // biggest. Banished apps leave first; the hero is the last thing to go. Ties
+        // break on window id, keeping the newer window - never on array order, which
+        // is whatever the enumeration happened to return. See issue #7.
         let victim = candidates.max {
-            $0.prio.rank != $1.prio.rank ? $0.prio.rank < $1.prio.rank
-                : $0.minSize.width * $0.minSize.height < $1.minSize.width * $1.minSize.height
+            if $0.prio.rank != $1.prio.rank { return $0.prio.rank < $1.prio.rank }
+            let a = $0.minSize.width * $0.minSize.height
+            let b = $1.minSize.width * $1.minSize.height
+            if a != b { return a < b }
+            return $0.id > $1.id          // "greatest" = lowest id = oldest = evicted
         }!
         candidates.removeAll { $0 === victim }
         pushed.append(victim)
@@ -643,11 +676,11 @@ if jsonOut {
 print("  \(dim)\(col("APP", 20))\(col("TIER", 9))\(col("MINIMUM", 11))\(col("PLANNED", 22))DISPLAY\(off)")
 print("  \(dim)\(String(repeating: "\u{2500}", count: 74))\(off)")
 for w in wins.sorted(by: { $0.prio.rank < $1.prio.rank }) {
-    let mn = "\(Int(w.minSize.width))x\(Int(w.minSize.height))"
+    let mn = "\(safeInt(w.minSize.width))x\(safeInt(w.minSize.height))"
     let tierColor = w.prio.tier == "hero" ? green : (w.prio.tier == "banish" ? dim : "")
     let tier = "\(tierColor)\(col(w.prio.tier, 9))\(off)"
     if let p = w.placement {
-        let g = "\(Int(p.width))x\(Int(p.height)) @\(Int(p.minX)),\(Int(p.minY))"
+        let g = "\(safeInt(p.width))x\(safeInt(p.height)) @\(safeInt(p.minX)),\(safeInt(p.minY))"
         print("  \(col(w.app, 20))\(tier)\(col(mn, 11))\(col(g, 22))\(green)\(w.display!)\(off)")
     } else {
         print("  \(col(w.app, 20))\(tier)\(col(mn, 11))\(col("-", 22))\(red)cannot fit\(off)")
@@ -658,7 +691,7 @@ print("")
 if !unplaced.isEmpty {
     print("  \(yellow)\(unplaced.count) window\(unplaced.count == 1 ? "" : "s") cannot fit without overlap on this display.\(off)")
     let total = wins.map { $0.minSize.height }.reduce(0, +)
-    print("  \(dim)stacked minimum heights: \(Int(total))px vs \(Int(displays[0].height))px usable\(off)")
+    print("  \(dim)stacked minimum heights: \(safeInt(total))px vs \(safeInt(displays[0].height))px usable\(off)")
     if !spill && displays.count > 1 {
         print("  \(dim)re-run with --spill to use the other display\(off)")
     }

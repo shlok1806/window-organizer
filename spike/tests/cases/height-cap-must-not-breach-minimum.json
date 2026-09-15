@@ -1,0 +1,26 @@
+{
+  "_comment": "System Settings has a technical minimum height of 700 but a built-in cap of 620. Physics must win: it is placed at 700, not 620. Regression for issue #8, where the per-window height clamp applied the cap with no floor check, planning windows shorter than the app will accept. A terminal takes the hero slot so System Settings keeps its cap (the hero's cap is deliberately nulled).",
+  "now": "2026-09-15T10:00:00Z",
+  "displays": [
+    { "idx": 0, "usable": { "x": 0, "y": 0, "w": 1000, "h": 1400 } }
+  ],
+  "focus": [],
+  "windows": [
+    {
+      "id": 1,
+      "app": "WezTerm",
+      "title": "hero",
+      "rect": { "x": 0, "y": 0, "w": 600, "h": 500 },
+      "minSize": { "w": 10, "h": 10 },
+      "focused": true
+    },
+    {
+      "id": 2,
+      "app": "System Settings",
+      "title": "technical minimum exceeds its own cap",
+      "rect": { "x": 0, "y": 0, "w": 723, "h": 700 },
+      "minSize": { "w": 723, "h": 700 },
+      "focused": false
+    }
+  ]
+}
