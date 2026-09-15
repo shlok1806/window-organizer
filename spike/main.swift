@@ -231,6 +231,28 @@ func collectWindows(_ onScreen: [CGWin]) -> [Win] {
     return out
 }
 
+/// The window the user is actually in - not merely the app they are in.
+///
+/// The frontmost *application* is easy to get; the frontmost *window* is not, and an
+/// app routinely has several. Resolving the hero by app name picks that app's first
+/// window, which is frequently not the focused one, so the master pane lands on a
+/// window the user is not looking at while the one they are typing in gets squeezed
+/// or stowed. See issue #6.
+func focusedWindow(among wins: [Win]) -> Win? {
+    guard let app = NSWorkspace.shared.frontmostApplication else { return nil }
+    var raw: CFTypeRef?
+    guard AXUIElementCopyAttributeValue(AXUIElementCreateApplication(app.processIdentifier),
+                                        kAXFocusedWindowAttribute as CFString, &raw) == .success,
+          let value = raw, CFGetTypeID(value) == AXUIElementGetTypeID() else { return nil }
+    let el = value as! AXUIElement
+    guard let p = axPoint(el, kAXPositionAttribute as String),
+          let s = axSize(el, kAXSizeAttribute as String) else { return nil }
+    let focused = CGRect(origin: p, size: s)
+    return wins.first {
+        $0.app == app.localizedName && roughlyEqual(CGRect(origin: $0.origin, size: $0.size), focused)
+    }
+}
+
 // ---------- minimum sizes: measure once, cache forever ----------
 
 let cacheURL = FileManager.default.homeDirectoryForCurrentUser
@@ -374,10 +396,21 @@ let argv = Array(CommandLine.arguments.dropFirst())
 let spill = args.contains("--spill")
 let jsonOut = args.contains("--json")
 
-// Planning from a recording must be physically incapable of touching a window.
-let planFrom: String? = argv.firstIndex(of: "--plan-from").flatMap { i in
-    i + 1 < argv.count ? argv[i + 1] : nil
+/// The value of a flag that requires one. A flag present with a missing value - or
+/// whose value is itself another flag - is a usage error, not an absent flag.
+/// Treating it as absent is how `--apply --plan-from` silently became a LIVE
+/// rearrange dressed up as a replay. See issue #4.
+func flagValue(_ name: String) -> String? {
+    guard let i = argv.firstIndex(of: name) else { return nil }
+    guard i + 1 < argv.count, !argv[i + 1].hasPrefix("--") else {
+        FileHandle.standardError.write("\(name) requires a value\n".data(using: .utf8)!)
+        exit(2)
+    }
+    return argv[i + 1]
 }
+
+// Planning from a recording must be physically incapable of touching a window.
+let planFrom = flagValue("--plan-from")
 let apply = args.contains("--apply") && planFrom == nil
 
 if args.contains("--help") || args.contains("-h") {
@@ -512,9 +545,12 @@ guard !wins.isEmpty else {
 // Planning from a recording must not read the user's config: a test that depends on
 // whatever the operator last edited is not a test. Fixtures get the built-in defaults.
 let priorities = fixture == nil ? loadPriorities() : defaultPriorities
-var heroApp = fixture == nil ? NSWorkspace.shared.frontmostApplication?.localizedName
-                             : wins.first(where: { $0.focused })?.app
-if let i = argv.firstIndex(of: "--hero"), i + 1 < argv.count { heroApp = argv[i + 1] }
+// Resolve the hero WINDOW, never an app name. --hero names an app explicitly, so
+// first-of-that-app is the right reading there; everything else follows focus.
+var hero: Win? = fixture == nil ? focusedWindow(among: wins)
+                                : wins.first(where: { $0.focused })
+if let named = flagValue("--hero") { hero = wins.first(where: { $0.app == named }) }
+let heroApp = hero?.app
 
 for w in wins {
     w.prio = priorities[w.app] ?? Priority()
@@ -523,7 +559,7 @@ for w in wins {
     if w.prio.tier == "hero" { w.prio.tier = "normal" }
 }
 // Exactly one hero: the single window you are actually in.
-if let hero = wins.first(where: { $0.app == heroApp }) {
+if let hero {
     hero.prio.tier = "hero"
     hero.prio.weight = max(hero.prio.weight, 3.0)
     hero.prio.maxSize = nil                     // the hero is never capped

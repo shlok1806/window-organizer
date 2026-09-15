@@ -1,0 +1,26 @@
+{
+  "_comment": "Two windows of the SAME app, only the second focused, on a display that can hold exactly one. The hero must be the focused window, so window 1 is the one stowed. Regression for issue #6, where the hero was re-resolved by app name and the first matching window won.",
+  "now": "2026-09-15T09:00:00Z",
+  "displays": [
+    { "idx": 0, "usable": { "x": 0, "y": 0, "w": 700, "h": 500 } }
+  ],
+  "focus": [],
+  "windows": [
+    {
+      "id": 1,
+      "app": "WezTerm",
+      "title": "older window, not focused",
+      "rect": { "x": 0, "y": 0, "w": 600, "h": 400 },
+      "minSize": { "w": 24, "h": 29 },
+      "focused": false
+    },
+    {
+      "id": 2,
+      "app": "WezTerm",
+      "title": "the one the user is typing in",
+      "rect": { "x": 50, "y": 50, "w": 600, "h": 400 },
+      "minSize": { "w": 24, "h": 29 },
+      "focused": true
+    }
+  ]
+}
