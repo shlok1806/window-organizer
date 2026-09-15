@@ -1,0 +1,10 @@
+{
+  "now": "2026-09-15T12:00:00Z",
+  "displays": [ { "idx": 0, "usable": { "x": 0, "y": 32, "w": 1728, "h": 1085 } } ],
+  "focus": [],
+  "windows": [
+    { "id": 1, "app": "WezTerm", "title": "work", "rect": { "x": 0, "y": 32, "w": 800, "h": 900 }, "minSize": { "w": 24, "h": 29 }, "focused": true },
+    { "id": 7, "app": "Arc", "title": "news", "rect": { "x": 900, "y": 32, "w": 900, "h": 700 }, "minSize": { "w": 200, "h": 150 }, "focused": false },
+    { "id": 20, "app": "Ghostty", "title": "logs", "rect": { "x": 0, "y": 700, "w": 800, "h": 900 }, "minSize": { "w": 30, "h": 30 }, "focused": false }
+  ]
+}

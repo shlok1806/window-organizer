@@ -1,0 +1,12 @@
+{
+  "now": "2026-09-15T12:00:00Z",
+  "displays": [ { "idx": 0, "usable": { "x": 0, "y": 32, "w": 1728, "h": 1085 } } ],
+  "focus": [],
+  "windows": [
+    { "id": 1, "app": "WezTerm", "title": "t1", "rect": { "x": 0, "y": 32, "w": 800, "h": 900 }, "minSize": { "w": 24, "h": 29 }, "focused": true },
+    { "id": 2, "app": "iTerm2", "title": "t2", "rect": { "x": 100, "y": 132, "w": 800, "h": 900 }, "minSize": { "w": 40, "h": 40 }, "focused": false },
+    { "id": 3, "app": "Terminal", "title": "t3", "rect": { "x": 200, "y": 232, "w": 800, "h": 900 }, "minSize": { "w": 50, "h": 50 }, "focused": false },
+    { "id": 4, "app": "Ghostty", "title": "t4", "rect": { "x": 300, "y": 332, "w": 800, "h": 900 }, "minSize": { "w": 30, "h": 30 }, "focused": false },
+    { "id": 5, "app": "Alacritty", "title": "t5", "rect": { "x": 400, "y": 432, "w": 800, "h": 900 }, "minSize": { "w": 30, "h": 30 }, "focused": false }
+  ]
+}

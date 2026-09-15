@@ -1,0 +1,15 @@
+{
+  "now": "2026-09-15T12:00:00Z",
+  "displays": [ { "idx": 0, "usable": { "x": 0, "y": 32, "w": 1728, "h": 1085 } } ],
+  "focus": [],
+  "windows": [
+    { "id": 1, "app": "WezTerm", "title": "work", "rect": { "x": 0, "y": 32, "w": 800, "h": 900 }, "minSize": { "w": 24, "h": 29 }, "focused": true },
+    { "id": 2, "app": "Code", "title": "warrange", "rect": { "x": 50, "y": 60, "w": 900, "h": 700 }, "minSize": { "w": 200, "h": 150 }, "focused": false },
+    { "id": 3, "app": "Safari", "title": "docs", "rect": { "x": 100, "y": 90, "w": 900, "h": 700 }, "minSize": { "w": 200, "h": 150 }, "focused": false },
+    { "id": 5, "app": "Slack", "title": "team", "rect": { "x": 200, "y": 150, "w": 600, "h": 500 }, "minSize": { "w": 300, "h": 250 }, "focused": false },
+    { "id": 6, "app": "Messages", "title": "chat", "rect": { "x": 250, "y": 180, "w": 400, "h": 500 }, "minSize": { "w": 260, "h": 300 }, "focused": false },
+    { "id": 8, "app": "Finder", "title": "Documents", "rect": { "x": 350, "y": 240, "w": 520, "h": 360 }, "minSize": { "w": 200, "h": 150 }, "focused": false },
+    { "id": 9, "app": "Mail", "title": "inbox", "rect": { "x": 400, "y": 270, "w": 800, "h": 600 }, "minSize": { "w": 300, "h": 250 }, "focused": false },
+    { "id": 11, "app": "System Settings", "title": "settings", "rect": { "x": 500, "y": 330, "w": 600, "h": 450 }, "minSize": { "w": 350, "h": 300 }, "focused": false }
+  ]
+}

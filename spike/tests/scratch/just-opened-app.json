@@ -1,0 +1,25 @@
+{
+  "_comment": "Laptop display already holding four windows. The user then opens Finder deliberately and presses the hotkey. Finder is the newest window and the one they most obviously want.",
+  "now": "2026-09-14T19:30:00Z",
+  "displays": [
+    { "idx": 0, "usable": { "x": 0, "y": 32, "w": 1728, "h": 1085 } }
+  ],
+  "focus": [],
+  "windows": [
+    { "id": 1, "app": "WezTerm", "title": "work",
+      "rect": { "x": 0, "y": 32, "w": 800, "h": 900 },
+      "minSize": { "w": 24, "h": 29 }, "focused": true },
+    { "id": 2, "app": "Safari", "title": "docs",
+      "rect": { "x": 400, "y": 100, "w": 1000, "h": 800 },
+      "minSize": { "w": 574, "h": 220 }, "focused": false },
+    { "id": 3, "app": "Microsoft Outlook", "title": "Inbox",
+      "rect": { "x": 200, "y": 60, "w": 1210, "h": 700 },
+      "minSize": { "w": 1210, "h": 684 }, "focused": false },
+    { "id": 4, "app": "Slack", "title": "team",
+      "rect": { "x": 300, "y": 200, "w": 900, "h": 700 },
+      "minSize": { "w": 668, "h": 400 }, "focused": false },
+    { "id": 5, "app": "Finder", "title": "JUST OPENED BY THE USER",
+      "rect": { "x": 500, "y": 300, "w": 800, "h": 500 },
+      "minSize": { "w": 459, "h": 252 }, "focused": false }
+  ]
+}

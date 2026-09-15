@@ -1,0 +1,11 @@
+{
+  "now": "2026-09-15T12:00:00Z",
+  "displays": [
+    { "idx": 0, "usable": { "x": 0, "y": 32, "w": 500, "h": 350 } },
+    { "idx": 1, "usable": { "x": 500, "y": 0, "w": 1920, "h": 1080 } }
+  ],
+  "focus": [],
+  "windows": [
+    { "id": 1, "app": "Xcode", "title": "proj", "rect": { "x": 0, "y": 32, "w": 900, "h": 600 }, "minSize": { "w": 600, "h": 400 }, "focused": true }
+  ]
+}

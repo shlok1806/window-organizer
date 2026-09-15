@@ -6,6 +6,7 @@ import AppKit
 
 struct Win {
     let z: Int              // 0 = frontmost
+    let id: Int             // CGWindowID - allocated monotonically, so higher = newer
     let app: String
     let title: String?
     let pid: Int
@@ -57,6 +58,7 @@ func visibleWindows(screens: [ScreenInfo], minSide: CGFloat = 80) -> [Win] {
         let screenIdx = screens.first { $0.rect.intersects(rect) }?.idx
 
         out.append(Win(z: out.count,
+                       id: w[kCGWindowNumber as String] as? Int ?? -1,
                        app: app,
                        title: title,
                        pid: w[kCGWindowOwnerPID as String] as? Int ?? -1,
@@ -140,7 +142,7 @@ func jsonSample(_ wins: [Win], _ screens: [ScreenInfo], _ mess: [Mess], titlesOK
         "frontmost": NSWorkspace.shared.frontmostApplication?.localizedName ?? NSNull(),
         "screens": screens.map { ["idx": $0.idx, "scale": $0.scale, "rect": r($0.rect)] },
         "windows": wins.map { w -> [String: Any] in
-            ["z": w.z, "app": w.app, "title": w.title ?? NSNull(),
+            ["z": w.z, "id": w.id, "app": w.app, "title": w.title ?? NSNull(),
              "pid": w.pid, "screen": w.screenIdx ?? NSNull(), "rect": r(w.rect)]
         },
         "mess": mess.map {

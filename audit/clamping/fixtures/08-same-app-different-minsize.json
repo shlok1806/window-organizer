@@ -1,0 +1,65 @@
+{
+  "now": "2026-09-15T12:00:00Z",
+  "displays": [
+    {
+      "idx": 0,
+      "usable": {
+        "x": 0,
+        "y": 32,
+        "w": 1728,
+        "h": 1085
+      }
+    }
+  ],
+  "focus": [],
+  "windows": [
+    {
+      "id": 1,
+      "app": "WezTerm",
+      "title": "work",
+      "rect": {
+        "x": 0,
+        "y": 32,
+        "w": 800,
+        "h": 900
+      },
+      "minSize": {
+        "w": 24,
+        "h": 29
+      },
+      "focused": true
+    },
+    {
+      "id": 2,
+      "app": "Microsoft Outlook",
+      "title": "inbox",
+      "rect": {
+        "x": 800,
+        "y": 32,
+        "w": 1210,
+        "h": 684
+      },
+      "minSize": {
+        "w": 1210,
+        "h": 684
+      },
+      "focused": false
+    },
+    {
+      "id": 3,
+      "app": "Microsoft Outlook",
+      "title": "compose",
+      "rect": {
+        "x": 800,
+        "y": 32,
+        "w": 640,
+        "h": 600
+      },
+      "minSize": {
+        "w": 640,
+        "h": 600
+      },
+      "focused": false
+    }
+  ]
+}

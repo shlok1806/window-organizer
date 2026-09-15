@@ -1,0 +1,12 @@
+{
+  "now": "2026-09-15T12:00:00Z",
+  "displays": [
+    { "idx": 0, "usable": { "x": 0, "y": 32, "w": 300, "h": 800 } },
+    { "idx": 1, "usable": { "x": 300, "y": 0, "w": 1920, "h": 1080 } }
+  ],
+  "focus": [],
+  "windows": [
+    { "id": 1, "app": "WezTerm", "title": "work", "rect": { "x": 0, "y": 32, "w": 900, "h": 700 }, "minSize": { "w": 640, "h": 400 }, "focused": true },
+    { "id": 2, "app": "Safari", "title": "docs", "rect": { "x": 100, "y": 100, "w": 900, "h": 600 }, "minSize": { "w": 200, "h": 150 }, "focused": false }
+  ]
+}

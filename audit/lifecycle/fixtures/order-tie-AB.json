@@ -1,0 +1,65 @@
+{
+  "now": "2026-09-15T12:00:00Z",
+  "displays": [
+    {
+      "idx": 0,
+      "usable": {
+        "x": 0,
+        "y": 32,
+        "w": 900,
+        "h": 1000
+      }
+    }
+  ],
+  "focus": [],
+  "windows": [
+    {
+      "id": 1,
+      "app": "WezTerm",
+      "title": "hero",
+      "rect": {
+        "x": 0,
+        "y": 32,
+        "w": 640,
+        "h": 400
+      },
+      "minSize": {
+        "w": 24,
+        "h": 29
+      },
+      "focused": true
+    },
+    {
+      "id": 10,
+      "app": "Finder",
+      "title": "winA",
+      "rect": {
+        "x": 0,
+        "y": 32,
+        "w": 520,
+        "h": 360
+      },
+      "minSize": {
+        "w": 520,
+        "h": 360
+      },
+      "focused": false
+    },
+    {
+      "id": 11,
+      "app": "Finder",
+      "title": "winB",
+      "rect": {
+        "x": 500,
+        "y": 32,
+        "w": 520,
+        "h": 360
+      },
+      "minSize": {
+        "w": 520,
+        "h": 360
+      },
+      "focused": false
+    }
+  ]
+}

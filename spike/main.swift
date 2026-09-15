@@ -88,7 +88,7 @@ func exitFullscreenEverywhere() -> Int {
 
 // ---------- what is genuinely on screen ----------
 
-struct CGWin { let pid: pid_t; let owner: String; let rect: CGRect }
+struct CGWin { let id: Int; let pid: pid_t; let owner: String; let rect: CGRect }
 
 /// Mission Control and App Exposé are drawn by the Dock process as a full-screen
 /// layer-0 window, and while either is up CGWindowList reports THUMBNAIL geometry
@@ -112,7 +112,8 @@ func onScreenWindows(minSide: CGFloat = 80) -> [CGWin] {
               let bd = w[kCGWindowBounds as String] as? NSDictionary,
               let r = CGRect(dictionaryRepresentation: bd),
               r.width >= minSide, r.height >= minSide else { continue }
-        out.append(CGWin(pid: pid_t(w[kCGWindowOwnerPID as String] as? Int ?? -1),
+        out.append(CGWin(id: w[kCGWindowNumber as String] as? Int ?? 0,
+                         pid: pid_t(w[kCGWindowOwnerPID as String] as? Int ?? -1),
                          owner: w[kCGWindowOwnerName as String] as? String ?? "?",
                          rect: r))
     }
@@ -211,14 +212,19 @@ func collectWindows(_ onScreen: [CGWin]) -> [Win] {
         for w in wins {
             guard let p = axPoint(w, kAXPositionAttribute as String),
                   let s = axSize(w, kAXSizeAttribute as String),
-                  onScreen.contains(where: { $0.pid == pid && roughlyEqual($0.rect, CGRect(origin: p, size: s)) })
+                  // CG carries the stable window id; AX does not expose one. Matching on
+                  // pid plus geometry is how the two views are joined.
+                  let cg = onScreen.first(where: {
+                      $0.pid == pid && roughlyEqual($0.rect, CGRect(origin: p, size: s))
+                  })
             else { continue }
             // Fullscreen windows refuse every write and report their own size as a
             // minimum. Including them poisons the minimum-size cache. See AGENTS.md.
             if axBool(w, "AXFullScreen") == true { continue }
             guard axSettable(w, kAXPositionAttribute as String),
                   axSettable(w, kAXSizeAttribute as String) else { continue }
-            out.append(Win(app: app.localizedName ?? "?", title: axString(w, kAXTitleAttribute as String),
+            out.append(Win(id: cg.id,
+                           app: app.localizedName ?? "?", title: axString(w, kAXTitleAttribute as String),
                            el: w, origin: p, size: s))
         }
     }

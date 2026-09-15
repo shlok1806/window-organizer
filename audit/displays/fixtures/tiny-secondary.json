@@ -1,0 +1,12 @@
+{
+  "now": "2026-09-15T12:00:00Z",
+  "displays": [
+    { "idx": 0, "usable": { "x": 0, "y": 32, "w": 1280, "h": 800 } },
+    { "idx": 1, "usable": { "x": 1280, "y": 0, "w": 320, "h": 240 } }
+  ],
+  "focus": [],
+  "windows": [
+    { "id": 1, "app": "WezTerm", "title": "work", "rect": { "x": 0, "y": 32, "w": 1280, "h": 800 }, "minSize": { "w": 24, "h": 29 }, "focused": true },
+    { "id": 2, "app": "Music", "title": "player", "rect": { "x": 300, "y": 300, "w": 400, "h": 300 }, "minSize": { "w": 200, "h": 150 }, "focused": false }
+  ]
+}

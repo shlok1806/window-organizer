@@ -1,0 +1,22 @@
+{
+  "now": "2026-09-15T12:00:00Z",
+  "displays": [ { "idx": 0, "usable": { "x": 0, "y": 32, "w": 850, "h": 2000 } } ],
+  "focus": [],
+  "windows": [
+    { "id": 20, "app": "Xcode", "title": "MyApp.xcodeproj",
+      "rect": { "x": 0, "y": 32, "w": 900, "h": 600 },
+      "minSize": { "w": 200, "h": 150 }, "focused": true },
+    { "id": 21, "app": "Slack", "title": "team",
+      "rect": { "x": 900, "y": 32, "w": 600, "h": 500 },
+      "minSize": { "w": 400, "h": 300 }, "focused": false },
+    { "id": 22, "app": "Messages", "title": "chat",
+      "rect": { "x": 0, "y": 632, "w": 400, "h": 500 },
+      "minSize": { "w": 250, "h": 300 }, "focused": false },
+    { "id": 23, "app": "Finder", "title": "Documents",
+      "rect": { "x": 400, "y": 632, "w": 520, "h": 360 },
+      "minSize": { "w": 300, "h": 200 }, "focused": false },
+    { "id": 24, "app": "Calendar", "title": "September",
+      "rect": { "x": 0, "y": 992, "w": 700, "h": 500 },
+      "minSize": { "w": 400, "h": 300 }, "focused": false }
+  ]
+}
