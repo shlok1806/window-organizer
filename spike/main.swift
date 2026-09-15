@@ -128,6 +128,7 @@ final class Win {
     var minSize: CGSize = .zero     // what the app will actually accept
     var packSize: CGSize = .zero    // what we plan against: minSize raised to a usable floor
     var prio = Priority()           // what the content is worth
+    var recency: CGFloat = 0        // decayed focus score; 0 when unknown
     var placement: CGRect?
     var display: Int?
     var focused = false
@@ -148,6 +149,7 @@ struct Fixture {
     let displays: [CGRect]
     let wins: [Win]
     let now: Date
+    let focus: [FocusEvent]
 }
 
 func fixtureRect(_ any: Any?) -> CGRect {
@@ -172,8 +174,14 @@ func loadFixture(_ path: String) -> Fixture? {
         w.focused = raw["focused"] as? Bool ?? false
         wins.append(w)
     }
-    let now = ISO8601DateFormatter().date(from: j["now"] as? String ?? "") ?? Date()
-    return Fixture(displays: displays, wins: wins, now: now)
+    let fmt = ISO8601DateFormatter()
+    let now = fmt.date(from: j["now"] as? String ?? "") ?? Date()
+    let focus: [FocusEvent] = (j["focus"] as? [[String: Any]] ?? []).compactMap {
+        guard let id = $0["id"] as? Int,
+              let at = fmt.date(from: $0["at"] as? String ?? "") else { return nil }
+        return FocusEvent(id: id, at: at)
+    }
+    return Fixture(displays: displays, wins: wins, now: now, focus: focus)
 }
 
 func planJSON(_ wins: [Win]) -> String {
@@ -567,6 +575,13 @@ var hero: Win? = fixture == nil ? focusedWindow(among: wins)
 if let named = flagValue("--hero") { hero = wins.first(where: { $0.app == named }) }
 let heroApp = hero?.app
 
+// Relevance from behaviour, not from what happens to be open. A replay carries its
+// own events and its own clock so decay is testable without waiting; a live run reads
+// the recorder's log, and scores everything equally if it is absent or unreadable.
+let focusEvents = fixture?.focus ?? loadFocusLog()
+let scoringNow = fixture?.now ?? Date()
+for w in wins { w.recency = recencyScore(w.id, focusEvents, now: scoringNow) }
+
 for w in wins {
     w.prio = priorities[w.app] ?? Priority()
     // A config tier of "hero" is an appetite hint (keep its weight), not a claim on
@@ -655,6 +670,10 @@ for (i, area) in areas.enumerated() {
         // is whatever the enumeration happened to return. See issue #7.
         let victim = candidates.max {
             if $0.prio.rank != $1.prio.rank { return $0.prio.rank < $1.prio.rank }
+            // Behaviour beats geometry: a window you touched recently outranks one you
+            // have not, whatever their sizes. "Greatest" here means most evictable, so
+            // the lower recency score sorts as greater.
+            if $0.recency != $1.recency { return $0.recency > $1.recency }
             let a = $0.minSize.width * $0.minSize.height
             let b = $1.minSize.width * $1.minSize.height
             if a != b { return a < b }

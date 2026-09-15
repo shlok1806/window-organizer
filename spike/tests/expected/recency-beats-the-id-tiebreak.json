@@ -1,0 +1,13 @@
+{
+  "placements": [
+    {
+      "id": 10,
+      "app": "Finder",
+      "display": 0,
+      "rect": { "x": 0, "y": 0, "w": 600, "h": 560 }
+    }
+  ],
+  "stowed": [
+    { "id": 11, "app": "Finder" }
+  ]
+}
