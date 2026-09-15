@@ -675,7 +675,21 @@ if let fracArg = argv.firstIndex(of: "--master").map({ i -> CGFloat in
    let hero = wins.first(where: { $0.prio.tier == "hero" }), !areas.isEmpty {
     let frac = min(0.85, max(0.3, fracArg))
     let area = areas[0]
-    let masterW = area.width * frac - GAP / 2
+
+    // The requested fraction is a preference, not a promise. Sized from the display
+    // alone it starves whatever is left: at 0.6 on a 1728px display the stack gets
+    // 687px, which is narrower than an editor's useful width, so the editor is stowed
+    // while the tool's own diagnostic says there was room. See issue #9.
+    //
+    // Clamp on both sides. Never below the hero's own floor - the slab exists to give
+    // the hero prominence, and shrinking it past usable defeats that. Never above what
+    // leaves room for the widest window that has to live in the stack. When those two
+    // bounds cross, the display genuinely cannot hold everyone and the hero's floor
+    // wins; ordinary eviction then decides who goes.
+    let heroFloor = effectiveSize(hero).width
+    let stackNeeds = wins.filter { $0 !== hero }.map { effectiveSize($0).width }.max() ?? 0
+    let ceiling = stackNeeds > 0 ? area.width - GAP - stackNeeds : area.width
+    let masterW = min(area.width * frac - GAP / 2, max(heroFloor, ceiling))
 
     hero.placement = CGRect(x: area.minX, y: area.minY,
                             width: min(masterW, hero.prio.maxSize?.width ?? masterW),

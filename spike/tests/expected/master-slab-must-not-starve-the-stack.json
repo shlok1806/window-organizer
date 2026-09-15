@@ -1,0 +1,23 @@
+{
+  "placements": [
+    {
+      "id": 74,
+      "app": "WezTerm",
+      "display": 0,
+      "rect": { "x": 0, "y": 32, "w": 920, "h": 1085 }
+    },
+    {
+      "id": 60,
+      "app": "Code",
+      "display": 0,
+      "rect": { "x": 928, "y": 32, "w": 800, "h": 633 }
+    },
+    {
+      "id": 54,
+      "app": "Claude",
+      "display": 0,
+      "rect": { "x": 928, "y": 673, "w": 800, "h": 444 }
+    }
+  ],
+  "stowed": []
+}
