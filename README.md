@@ -73,12 +73,20 @@ Details in [AGENTS.md](AGENTS.md).
 
 ## Known gaps
 
+Tracked as [issues](https://github.com/shlok1806/window-organizer/issues). The ones worth
+knowing before you rely on it:
+
 - Minimum sizes are cached per app, so a second window of the same app can clamp past
   its slot and overlap its neighbour.
-- No verification after applying a layout - a window that lies about accepting a size
-  is not detected or reflowed.
-- Layout satisfies *technical* minimums, not *useful* ones, so a browser can be placed
-  at 222px tall: present, and worthless.
+- Nothing verifies the layout after applying it, so a window that lies about accepting a
+  size is never detected or reflowed.
+- A window you just opened is not recognised as wanted, so it can be stowed immediately
+  after you open it.
+- `--master` hands the hero a fixed slab without checking the hero's own minimum, so a
+  small display or a low fraction can plan it below a usable size.
+
+Layout plans against **useful** sizes rather than merely technical ones, so a browser is
+either given room to be a browser or stowed - it is never placed at 222px tall.
 
 ## Licence
 

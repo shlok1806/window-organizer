@@ -1,0 +1,17 @@
+{
+  "placements": [
+    {
+      "id": 1,
+      "app": "WezTerm",
+      "display": 0,
+      "rect": { "x": 0, "y": 0, "w": 1000, "h": 692 }
+    },
+    {
+      "id": 2,
+      "app": "System Settings",
+      "display": 0,
+      "rect": { "x": 0, "y": 700, "w": 800, "h": 700 }
+    }
+  ],
+  "stowed": []
+}

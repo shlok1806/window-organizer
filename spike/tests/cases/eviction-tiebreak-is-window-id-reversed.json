@@ -1,0 +1,26 @@
+{
+  "_comment": "Identical to eviction-tiebreak-is-window-id but with the windows array in the opposite order. The expected plan is the SAME file content: array order must not decide the victim. This is the half that actually catches issue #7 - the un-reversed case passes by coincidence.",
+  "now": "2026-09-15T10:00:00Z",
+  "displays": [
+    { "idx": 0, "usable": { "x": 0, "y": 0, "w": 600, "h": 600 } }
+  ],
+  "focus": [],
+  "windows": [
+    {
+      "id": 11,
+      "app": "Finder",
+      "title": "newer",
+      "rect": { "x": 20, "y": 20, "w": 500, "h": 400 },
+      "minSize": { "w": 10, "h": 10 },
+      "focused": false
+    },
+    {
+      "id": 10,
+      "app": "Finder",
+      "title": "older",
+      "rect": { "x": 0, "y": 0, "w": 500, "h": 400 },
+      "minSize": { "w": 10, "h": 10 },
+      "focused": false
+    }
+  ]
+}

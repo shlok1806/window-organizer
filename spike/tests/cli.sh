@@ -33,6 +33,12 @@ check() {
 # looks like a replay. See issue #4.
 check "--plan-from with no value is a usage error" 2 "$BIN" --plan-from
 
+# An out-of-range minSize must not crash. It is measured from live AX queries and
+# cached, so a single bad measurement would otherwise brick every later run for that
+# app. Exit 133 is SIGTRAP. See issue #5.
+check "absurd minSize does not crash (human output)" 0 "$BIN" --plan-from cli-cases/absurd-minsize.json
+check "absurd minSize does not crash (json output)"  0 "$BIN" --plan-from cli-cases/absurd-minsize.json --json
+
 echo ""
 echo "$pass passed, $fail failed"
 [ "$fail" -eq 0 ]

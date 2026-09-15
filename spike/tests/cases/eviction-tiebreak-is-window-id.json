@@ -1,0 +1,26 @@
+{
+  "_comment": "Two windows identical on every signal the engine consults, on a display that holds exactly one. The tie must break on window id, keeping the newer window, rather than on whatever order the array happened to arrive in. Regression for issue #7.",
+  "now": "2026-09-15T10:00:00Z",
+  "displays": [
+    { "idx": 0, "usable": { "x": 0, "y": 0, "w": 600, "h": 600 } }
+  ],
+  "focus": [],
+  "windows": [
+    {
+      "id": 10,
+      "app": "Finder",
+      "title": "older",
+      "rect": { "x": 0, "y": 0, "w": 500, "h": 400 },
+      "minSize": { "w": 10, "h": 10 },
+      "focused": false
+    },
+    {
+      "id": 11,
+      "app": "Finder",
+      "title": "newer",
+      "rect": { "x": 20, "y": 20, "w": 500, "h": 400 },
+      "minSize": { "w": 10, "h": 10 },
+      "focused": false
+    }
+  ]
+}

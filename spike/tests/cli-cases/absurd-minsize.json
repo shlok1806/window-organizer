@@ -1,0 +1,26 @@
+{
+  "_comment": "A minSize far outside Int range. This is not a hypothetical: minSize is MEASURED from live Accessibility queries and cached to disk, so one bad measurement poisons the cache and crashes every later run for that app. Regression for issue #5.",
+  "now": "2026-09-15T10:00:00Z",
+  "displays": [
+    { "idx": 0, "usable": { "x": 0, "y": 0, "w": 1200, "h": 800 } }
+  ],
+  "focus": [],
+  "windows": [
+    {
+      "id": 1,
+      "app": "WezTerm",
+      "title": "sane",
+      "rect": { "x": 0, "y": 0, "w": 600, "h": 500 },
+      "minSize": { "w": 10, "h": 10 },
+      "focused": true
+    },
+    {
+      "id": 2,
+      "app": "Safari",
+      "title": "poisoned measurement",
+      "rect": { "x": 0, "y": 0, "w": 600, "h": 500 },
+      "minSize": { "w": 1e19, "h": 1e19 },
+      "focused": false
+    }
+  ]
+}
