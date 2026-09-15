@@ -1,0 +1,13 @@
+{
+  "placements": [
+    {
+      "id": 1,
+      "app": "WezTerm",
+      "display": 0,
+      "rect": { "x": 0, "y": 0, "w": 1000, "h": 800 }
+    }
+  ],
+  "stowed": [
+    { "id": 2, "app": "Safari" }
+  ]
+}

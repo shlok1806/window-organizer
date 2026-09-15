@@ -120,16 +120,76 @@ func onScreenWindows(minSide: CGFloat = 80) -> [CGWin] {
 }
 
 final class Win {
-    let app: String, title: String, el: AXUIElement
+    var id: Int                     // stable window identity; 0 when unknown
+    let app: String, title: String
+    let el: AXUIElement?            // nil when planning from a recorded desktop
     let origin: CGPoint, size: CGSize
     var minSize: CGSize = .zero     // what the app will actually accept
     var packSize: CGSize = .zero    // what we plan against: minSize raised to a usable floor
     var prio = Priority()           // what the content is worth
     var placement: CGRect?
     var display: Int?
-    init(app: String, title: String, el: AXUIElement, origin: CGPoint, size: CGSize) {
-        self.app = app; self.title = title; self.el = el; self.origin = origin; self.size = size
+    var focused = false
+    init(id: Int = 0, app: String, title: String, el: AXUIElement?,
+         origin: CGPoint, size: CGSize) {
+        self.id = id; self.app = app; self.title = title; self.el = el
+        self.origin = origin; self.size = size
     }
+}
+
+// ---------- recorded desktops ----------
+
+// Planning from a recording is the test seam: no Accessibility, no clock, no live
+// windows. Anything that can be replayed can be asserted on, and any real desktop
+// (including a bug report) becomes a permanent test case.
+
+struct Fixture {
+    let displays: [CGRect]
+    let wins: [Win]
+    let now: Date
+}
+
+func fixtureRect(_ any: Any?) -> CGRect {
+    guard let r = any as? [String: Any] else { return .zero }
+    return CGRect(x: r["x"] as? Double ?? 0, y: r["y"] as? Double ?? 0,
+                  width: r["w"] as? Double ?? 0, height: r["h"] as? Double ?? 0)
+}
+
+func loadFixture(_ path: String) -> Fixture? {
+    guard let d = FileManager.default.contents(atPath: path),
+          let j = (try? JSONSerialization.jsonObject(with: d)) as? [String: Any] else { return nil }
+
+    let displays = (j["displays"] as? [[String: Any]] ?? []).map { fixtureRect($0["usable"]) }
+    var wins: [Win] = []
+    for raw in j["windows"] as? [[String: Any]] ?? [] {
+        let r = fixtureRect(raw["rect"])
+        let w = Win(id: raw["id"] as? Int ?? 0,
+                    app: raw["app"] as? String ?? "?",
+                    title: raw["title"] as? String ?? "",
+                    el: nil, origin: r.origin, size: r.size)
+        w.minSize = fixtureRect(raw["minSize"]).size
+        w.focused = raw["focused"] as? Bool ?? false
+        wins.append(w)
+    }
+    let now = ISO8601DateFormatter().date(from: j["now"] as? String ?? "") ?? Date()
+    return Fixture(displays: displays, wins: wins, now: now)
+}
+
+func planJSON(_ wins: [Win]) -> String {
+    func r(_ x: CGRect) -> [String: Int] {
+        ["x": Int(x.minX.rounded()), "y": Int(x.minY.rounded()),
+         "w": Int(x.width.rounded()), "h": Int(x.height.rounded())]
+    }
+    let placements: [[String: Any]] = wins.compactMap { w in
+        guard let p = w.placement else { return nil }
+        return ["id": w.id, "app": w.app, "display": w.display ?? 0, "rect": r(p)]
+    }
+    let stowed: [[String: Any]] = wins.filter { $0.placement == nil }.map {
+        ["id": $0.id, "app": $0.app]
+    }
+    let obj: [String: Any] = ["placements": placements, "stowed": stowed]
+    let d = try! JSONSerialization.data(withJSONObject: obj, options: [.sortedKeys])
+    return String(data: d, encoding: .utf8)!
 }
 
 func roughlyEqual(_ a: CGRect, _ b: CGRect, tol: CGFloat = 8) -> Bool {
@@ -189,11 +249,13 @@ func measureMinimums(_ wins: [Win]) -> Int {
     var cache = loadCache()
     var measured = 0
     for w in wins {
+        if w.minSize != .zero { continue }          // recorded desktop already told us
+        guard let el = w.el else { continue }
         if let c = cache[w.app], c.count == 2 { w.minSize = CGSize(width: c[0], height: c[1]); continue }
-        setSize(w.el, CGSize(width: 1, height: 1))
-        let got = axSize(w.el, kAXSizeAttribute as String) ?? w.size
-        setSize(w.el, w.size)                       // restore
-        setPos(w.el, w.origin)
+        setSize(el, CGSize(width: 1, height: 1))
+        let got = axSize(el, kAXSizeAttribute as String) ?? w.size
+        setSize(el, w.size)                         // restore
+        setPos(el, w.origin)
         w.minSize = got
         // A window that came back exactly its original size did not shrink at all -
         // that is a refusal, not a minimum. Caching it would claim the app needs a
@@ -226,19 +288,14 @@ struct Row { var items: [Win]; var minHeight: CGFloat }
 /// Shelf packing. Returns nil when the windows cannot fit without overlap -
 /// which is a real outcome, not an error.
 ///
-/// `comfort` raises every window's planning size to a usable floor before packing.
-/// Without it a terminal (true minimum 24x29) reads as costless, so the packer crams
-/// four windows into one row and hands the terminals 140px. Feasibility is still
-/// decided by real minimums: if the comfortable pass fails, the caller retries without it.
-func pack(_ wins: [Win], into area: CGRect, comfort: Bool) -> [Row]? {
-    // Even the cramped fallback keeps a hard floor. Falling back to raw minimums lets
-    // a terminal (true minimum 24px) be handed 72px - present on screen, useless to a
-    // human. Below the floor the right answer is to evict a window, not to shrink one.
-    let floorW = comfort ? min(460, area.width / 3) : min(260, area.width)
-    let floorH = comfort ? min(300, area.height / 3) : min(200, area.height)
+func pack(_ wins: [Win], into area: CGRect) -> [Row]? {
+    // Plan against USEFUL sizes, not technical minimums. A window that cannot be given
+    // a useful size is stowed by the caller rather than shrunk - there is no cramped
+    // fallback, because "present but unusable" is not a better outcome than "not here".
+    // Where the technical minimum is larger than the useful size, physics wins.
     for w in wins {
-        w.packSize = CGSize(width: max(w.minSize.width, floorW),
-                            height: max(w.minSize.height, floorH))
+        w.packSize = CGSize(width: max(w.minSize.width, w.prio.usefulSize.width),
+                            height: max(w.minSize.height, w.prio.usefulSize.height))
     }
 
     // Highest priority first, so the hero lands in the top row rather than wherever
@@ -307,8 +364,15 @@ let red = "\u{1B}[31m", green = "\u{1B}[32m", yellow = "\u{1B}[33m"
 func col(_ s: String, _ n: Int) -> String { (s as NSString).padding(toLength: n, withPad: " ", startingAt: 0) }
 
 let args = Set(CommandLine.arguments.dropFirst())
-let apply = args.contains("--apply")
+let argv = Array(CommandLine.arguments.dropFirst())
 let spill = args.contains("--spill")
+let jsonOut = args.contains("--json")
+
+// Planning from a recording must be physically incapable of touching a window.
+let planFrom: String? = argv.firstIndex(of: "--plan-from").flatMap { i in
+    i + 1 < argv.count ? argv[i + 1] : nil
+}
+let apply = args.contains("--apply") && planFrom == nil
 
 if args.contains("--help") || args.contains("-h") {
     print("""
@@ -331,7 +395,7 @@ if args.contains("--help") || args.contains("-h") {
     exit(0)
 }
 
-guard AXIsProcessTrusted() else {
+guard planFrom != nil || AXIsProcessTrusted() else {
     print("\(red)Accessibility not granted.\(off) System Settings > Privacy & Security > Accessibility")
     exit(1)
 }
@@ -346,7 +410,7 @@ func saveUndo(_ wins: [Win]) {
         ["app": $0.app, "title": $0.title,
          "x": Double($0.origin.x), "y": Double($0.origin.y),
          "w": Double($0.size.width), "h": Double($0.size.height),
-         "minimized": axBool($0.el, kAXMinimizedAttribute as String) ?? false]
+         "minimized": $0.el.flatMap { axBool($0, kAXMinimizedAttribute as String) } ?? false]
     }
     try? FileManager.default.createDirectory(at: undoURL.deletingLastPathComponent(),
                                              withIntermediateDirectories: true)
@@ -382,19 +446,30 @@ if args.contains("--undo") {
         guard let e = arr.first(where: { $0["app"] as? String == w.app && $0["title"] as? String == w.title }),
               let x = e["x"] as? Double, let y = e["y"] as? Double,
               let ww = e["w"] as? Double, let hh = e["h"] as? Double else { continue }
-        setSize(w.el, CGSize(width: ww, height: hh))
-        setPos(w.el, CGPoint(x: x, y: y))
-        setSize(w.el, CGSize(width: ww, height: hh))
+        guard let el = w.el else { continue }
+        setSize(el, CGSize(width: ww, height: hh))
+        setPos(el, CGPoint(x: x, y: y))
+        setSize(el, CGSize(width: ww, height: hh))
         restored += 1
     }
     print("\(green)restored \(restored) windows\(off)")
     exit(0)
 }
 
-let displays = usableDisplays()
+// Either replay a recording, or read the live desktop. Never both.
+var fixture: Fixture? = nil
+if let path = planFrom {
+    guard let f = loadFixture(path) else {
+        FileHandle.standardError.write("cannot read fixture: \(path)\n".data(using: .utf8)!)
+        exit(1)
+    }
+    fixture = f
+}
+
+let displays = fixture?.displays ?? usableDisplays()
 guard !displays.isEmpty else { print("no displays"); exit(1) }
 
-if args.contains("--unfullscreen") {
+if fixture == nil, args.contains("--unfullscreen") {
     let n = exitFullscreenEverywhere()
     if n > 0 {
         print("  \(dim)reclaimed \(n) fullscreen window\(n == 1 ? "" : "s") - waiting for the Space to settle\(off)")
@@ -410,14 +485,16 @@ if args.contains("--unfullscreen") {
     }
 }
 
-guard !missionControlActive(onScreenWindows(), displays) else {
-    print("\(yellow)Mission Control is open.\(off) Window geometry is thumbnail data right now,")
-    print("\(dim)not real frames - arranging from it would scatter every window.\(off)")
-    print("\(dim)Press Escape and re-run.\(off)")
-    exit(1)
+if fixture == nil {
+    guard !missionControlActive(onScreenWindows(), displays) else {
+        print("\(yellow)Mission Control is open.\(off) Window geometry is thumbnail data right now,")
+        print("\(dim)not real frames - arranging from it would scatter every window.\(off)")
+        print("\(dim)Press Escape and re-run.\(off)")
+        exit(1)
+    }
 }
 
-let wins = collectWindows(onScreenWindows())
+let wins = fixture?.wins ?? collectWindows(onScreenWindows())
 guard !wins.isEmpty else {
     print("no windows on screen")
     print("\(dim)(if you are in a fullscreen app, re-run with --unfullscreen)\(off)")
@@ -426,9 +503,11 @@ guard !wins.isEmpty else {
 
 // Assign intent. The hero defaults to whatever you are actually in right now,
 // which is the answer most of the time and costs no configuration.
-let priorities = loadPriorities()
-let argv = Array(CommandLine.arguments.dropFirst())
-var heroApp = NSWorkspace.shared.frontmostApplication?.localizedName
+// Planning from a recording must not read the user's config: a test that depends on
+// whatever the operator last edited is not a test. Fixtures get the built-in defaults.
+let priorities = fixture == nil ? loadPriorities() : defaultPriorities
+var heroApp = fixture == nil ? NSWorkspace.shared.frontmostApplication?.localizedName
+                             : wins.first(where: { $0.focused })?.app
 if let i = argv.firstIndex(of: "--hero"), i + 1 < argv.count { heroApp = argv[i + 1] }
 
 for w in wins {
@@ -444,13 +523,17 @@ if let hero = wins.first(where: { $0.app == heroApp }) {
     hero.prio.maxSize = nil                     // the hero is never capped
 }
 
-print("")
-print("\(bold)ARRANGE\(off)  \(dim)\(wins.count) windows, \(displays.count) display\(displays.count == 1 ? "" : "s")" +
-      "\(heroApp.map { ", hero: \($0)" } ?? "")\(off)")
+if !jsonOut {
+    print("")
+    print("\(bold)ARRANGE\(off)  \(dim)\(wins.count) windows, \(displays.count) display\(displays.count == 1 ? "" : "s")" +
+          "\(heroApp.map { ", hero: \($0)" } ?? "")\(off)")
+}
 
 let measured = measureMinimums(wins)
-if measured > 0 { print("\(dim)  measured \(measured) new minimum size\(measured == 1 ? "" : "s") (cached)\(off)") }
-print("")
+if !jsonOut {
+    if measured > 0 { print("\(dim)  measured \(measured) new minimum size\(measured == 1 ? "" : "s") (cached)\(off)") }
+    print("")
+}
 
 // Fit onto display 0; spill the tallest windows onward only when asked.
 var remaining = wins
@@ -486,15 +569,12 @@ if let fracArg = argv.firstIndex(of: "--master").map({ i -> CGFloat in
 for (i, area) in areas.enumerated() {
     if remaining.isEmpty { break }
     if i > 0 && !spill { break }
-    let isLastChance = !spill || i == areas.count - 1
 
     var candidates = remaining
     var pushed: [Win] = []
 
     while !candidates.isEmpty {
-        var rows = pack(candidates, into: area, comfort: true)
-        if rows == nil && isLastChance { rows = pack(candidates, into: area, comfort: false) }
-        if let rows {
+        if let rows = pack(candidates, into: area) {
             layout(rows, in: area, display: i)
             placedAnywhere = true
             break
@@ -512,6 +592,11 @@ for (i, area) in areas.enumerated() {
 }
 
 let unplaced = wins.filter { $0.placement == nil }
+
+if jsonOut {
+    print(planJSON(wins))
+    exit(0)
+}
 
 print("  \(dim)\(col("APP", 20))\(col("TIER", 9))\(col("MINIMUM", 11))\(col("PLANNED", 22))DISPLAY\(off)")
 print("  \(dim)\(String(repeating: "\u{2500}", count: 74))\(off)")
@@ -543,14 +628,18 @@ if apply && placedAnywhere {
     for w in wins {
         guard let p = w.placement else { continue }
         // size, position, size again: some apps re-clamp after a move
-        setSize(w.el, p.size)
-        setPos(w.el, p.origin)
-        setSize(w.el, p.size)
+        guard let el = w.el else { continue }
+        setSize(el, p.size)
+        setPos(el, p.origin)
+        setSize(el, p.size)
     }
     // Windows with nowhere to go get minimized. Leaving them put would strand them
     // on top of the layout we just built - "cannot fit" has to actually mean something.
     var stowed = 0
-    for w in unplaced where setBool(w.el, kAXMinimizedAttribute as String, true) { stowed += 1 }
+    for w in unplaced {
+        guard let el = w.el else { continue }
+        if setBool(el, kAXMinimizedAttribute as String, true) { stowed += 1 }
+    }
     print("  \(green)applied\(off)" + (stowed > 0 ? "\(dim), \(stowed) minimised\(off)" : ""))
 } else if !apply {
     print("  \(dim)dry run - pass --apply to do it\(off)")

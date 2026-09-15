@@ -18,6 +18,12 @@ struct Priority {
     var weight: CGFloat = 1
     var maxSize: CGSize? = nil
 
+    /// The size below which this window is worthless to a human. Distinct from the
+    /// technical minimum, which is what the app will merely *accept*: a browser will
+    /// happily accept 574x220 and show you three lines of text. Policy, not physics -
+    /// where the technical minimum is larger, physics wins.
+    var usefulSize = CGSize(width: 480, height: 360)
+
     var rank: Int {
         switch tier {
         case "hero": return 0
@@ -31,41 +37,44 @@ struct Priority {
 /// Sensible starting points by app category. Terminals and editors want width for
 /// code; readers want a comfortable column, not the whole screen; chat and media
 /// want to be small and out of the way.
+private func cap(_ w: CGFloat, _ h: CGFloat = 4000) -> CGSize { CGSize(width: w, height: h) }
+private func useful(_ w: CGFloat, _ h: CGFloat) -> CGSize { CGSize(width: w, height: h) }
+
 let defaultPriorities: [String: Priority] = [
-    // make things - hero
-    "WezTerm":           Priority(tier: "hero",   weight: 3.0),
-    "iTerm2":            Priority(tier: "hero",   weight: 3.0),
-    "Terminal":          Priority(tier: "hero",   weight: 3.0),
-    "Ghostty":           Priority(tier: "hero",   weight: 3.0),
-    "Alacritty":         Priority(tier: "hero",   weight: 3.0),
-    "Code":              Priority(tier: "hero",   weight: 3.0),
-    "Cursor":            Priority(tier: "hero",   weight: 3.0),
-    "Xcode":             Priority(tier: "hero",   weight: 3.0),
+    // make things - hero. Code needs width for long lines and height for context.
+    "WezTerm":           Priority(tier: "hero", weight: 3.0, usefulSize: useful(640, 400)),
+    "iTerm2":            Priority(tier: "hero", weight: 3.0, usefulSize: useful(640, 400)),
+    "Terminal":          Priority(tier: "hero", weight: 3.0, usefulSize: useful(640, 400)),
+    "Ghostty":           Priority(tier: "hero", weight: 3.0, usefulSize: useful(640, 400)),
+    "Alacritty":         Priority(tier: "hero", weight: 3.0, usefulSize: useful(640, 400)),
+    "Code":              Priority(tier: "hero", weight: 3.0, usefulSize: useful(800, 500)),
+    "Cursor":            Priority(tier: "hero", weight: 3.0, usefulSize: useful(800, 500)),
+    "Xcode":             Priority(tier: "hero", weight: 3.0, usefulSize: useful(900, 600)),
 
-    // read things - normal, but capped at a comfortable reading column
-    "Safari":            Priority(tier: "normal", weight: 2.0, maxSize: CGSize(width: 1200, height: 4000)),
-    "Google Chrome":     Priority(tier: "normal", weight: 2.0, maxSize: CGSize(width: 1200, height: 4000)),
-    "Arc":               Priority(tier: "normal", weight: 2.0, maxSize: CGSize(width: 1200, height: 4000)),
-    "Firefox":           Priority(tier: "normal", weight: 2.0, maxSize: CGSize(width: 1200, height: 4000)),
-    "Preview":           Priority(tier: "normal", weight: 1.5, maxSize: CGSize(width: 1000, height: 4000)),
+    // read things - a page needs a readable column AND enough height to be a page
+    "Safari":            Priority(tier: "normal", weight: 2.0, maxSize: cap(1200), usefulSize: useful(900, 600)),
+    "Google Chrome":     Priority(tier: "normal", weight: 2.0, maxSize: cap(1200), usefulSize: useful(900, 600)),
+    "Arc":               Priority(tier: "normal", weight: 2.0, maxSize: cap(1200), usefulSize: useful(900, 600)),
+    "Firefox":           Priority(tier: "normal", weight: 2.0, maxSize: cap(1200), usefulSize: useful(900, 600)),
+    "Preview":           Priority(tier: "normal", weight: 1.5, maxSize: cap(1000), usefulSize: useful(700, 600)),
 
-    // talk to people - present but contained
-    "Microsoft Outlook": Priority(tier: "normal", weight: 1.4, maxSize: CGSize(width: 1300, height: 4000)),
-    "Mail":              Priority(tier: "normal", weight: 1.4, maxSize: CGSize(width: 1100, height: 4000)),
-    "Slack":             Priority(tier: "minor",  weight: 1.0, maxSize: CGSize(width: 820, height: 4000)),
-    "Messages":          Priority(tier: "minor",  weight: 0.7, maxSize: CGSize(width: 560, height: 4000)),
-    "Discord":           Priority(tier: "minor",  weight: 0.8, maxSize: CGSize(width: 900, height: 4000)),
+    // talk to people - a list plus a reading pane needs real width
+    "Microsoft Outlook": Priority(tier: "normal", weight: 1.4, maxSize: cap(1300), usefulSize: useful(900, 600)),
+    "Mail":              Priority(tier: "normal", weight: 1.4, maxSize: cap(1100), usefulSize: useful(800, 600)),
+    "Slack":             Priority(tier: "minor",  weight: 1.0, maxSize: cap(820),  usefulSize: useful(600, 500)),
+    "Messages":          Priority(tier: "minor",  weight: 0.7, maxSize: cap(560),  usefulSize: useful(400, 500)),
+    "Discord":           Priority(tier: "minor",  weight: 0.8, maxSize: cap(900),  usefulSize: useful(600, 500)),
 
-    // look things up - small, capped hard
-    "Finder":            Priority(tier: "minor",  weight: 0.8, maxSize: CGSize(width: 760, height: 560)),
-    "System Settings":   Priority(tier: "minor",  weight: 0.6, maxSize: CGSize(width: 800, height: 620)),
-    "Activity Monitor":  Priority(tier: "minor",  weight: 0.6, maxSize: CGSize(width: 800, height: 600)),
-    "Calendar":          Priority(tier: "minor",  weight: 1.0, maxSize: CGSize(width: 900, height: 700)),
+    // look things up - small is fine, these are glanced at
+    "Finder":            Priority(tier: "minor", weight: 0.8, maxSize: cap(760, 560), usefulSize: useful(520, 360)),
+    "System Settings":   Priority(tier: "minor", weight: 0.6, maxSize: cap(800, 620), usefulSize: useful(600, 450)),
+    "Activity Monitor":  Priority(tier: "minor", weight: 0.6, maxSize: cap(800, 600), usefulSize: useful(600, 400)),
+    "Calendar":          Priority(tier: "minor", weight: 1.0, maxSize: cap(900, 700), usefulSize: useful(700, 500)),
 
     // noise - off to another display if one exists
-    "Music":             Priority(tier: "banish", weight: 0.3, maxSize: CGSize(width: 560, height: 440)),
-    "Spotify":           Priority(tier: "banish", weight: 0.3, maxSize: CGSize(width: 560, height: 440)),
-    "TV":                Priority(tier: "banish", weight: 0.3, maxSize: CGSize(width: 700, height: 500)),
+    "Music":             Priority(tier: "banish", weight: 0.3, maxSize: cap(560, 440), usefulSize: useful(400, 300)),
+    "Spotify":           Priority(tier: "banish", weight: 0.3, maxSize: cap(560, 440), usefulSize: useful(400, 300)),
+    "TV":                Priority(tier: "banish", weight: 0.3, maxSize: cap(700, 500), usefulSize: useful(480, 320)),
 ]
 
 let priorityURL = FileManager.default.homeDirectoryForCurrentUser
@@ -74,7 +83,8 @@ let priorityURL = FileManager.default.homeDirectoryForCurrentUser
 func encodePriorities(_ p: [String: Priority]) -> [String: Any] {
     var out: [String: Any] = [:]
     for (k, v) in p {
-        var e: [String: Any] = ["tier": v.tier, "weight": Double(v.weight)]
+        var e: [String: Any] = ["tier": v.tier, "weight": Double(v.weight),
+                                "useful": [Double(v.usefulSize.width), Double(v.usefulSize.height)]]
         if let m = v.maxSize { e["max"] = [Double(m.width), Double(m.height)] }
         out[k] = e
     }
@@ -93,14 +103,20 @@ func loadPriorities() -> [String: Priority] {
         }
         return defaultPriorities
     }
-    var out: [String: Priority] = [:]
+    // Start from the built-in defaults and overlay the file. A config written by an
+    // older version is missing keys that have since been added; inheriting the default
+    // for those beats silently falling back to a generic value for every app.
+    var out = defaultPriorities
     for (k, raw) in j {
         guard let e = raw as? [String: Any] else { continue }
-        var p = Priority()
+        var p = out[k] ?? Priority()
         if let t = e["tier"] as? String { p.tier = t }
         if let w = e["weight"] as? Double { p.weight = CGFloat(w) }
         if let m = e["max"] as? [Double], m.count == 2 {
             p.maxSize = CGSize(width: m[0], height: m[1])
+        }
+        if let u = e["useful"] as? [Double], u.count == 2 {
+            p.usefulSize = CGSize(width: u[0], height: u[1])
         }
         out[k] = p
     }
