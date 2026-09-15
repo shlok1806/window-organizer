@@ -37,7 +37,10 @@ struct Priority {
 /// Sensible starting points by app category. Terminals and editors want width for
 /// code; readers want a comfortable column, not the whole screen; chat and media
 /// want to be small and out of the way.
-private func cap(_ w: CGFloat, _ h: CGFloat = 4000) -> CGSize { CGSize(width: w, height: h) }
+/// Both dimensions are required deliberately. A default height let minor-tier apps be
+/// capped in width only, so "minor tier is capped so it stops stealing space" was half
+/// true - spill one onto its own display and it took the full height. See issue #12.
+private func cap(_ w: CGFloat, _ h: CGFloat) -> CGSize { CGSize(width: w, height: h) }
 private func useful(_ w: CGFloat, _ h: CGFloat) -> CGSize { CGSize(width: w, height: h) }
 
 let defaultPriorities: [String: Priority] = [
@@ -52,18 +55,18 @@ let defaultPriorities: [String: Priority] = [
     "Xcode":             Priority(tier: "hero", weight: 3.0, usefulSize: useful(900, 600)),
 
     // read things - a page needs a readable column AND enough height to be a page
-    "Safari":            Priority(tier: "normal", weight: 2.0, maxSize: cap(1200), usefulSize: useful(900, 600)),
-    "Google Chrome":     Priority(tier: "normal", weight: 2.0, maxSize: cap(1200), usefulSize: useful(900, 600)),
-    "Arc":               Priority(tier: "normal", weight: 2.0, maxSize: cap(1200), usefulSize: useful(900, 600)),
-    "Firefox":           Priority(tier: "normal", weight: 2.0, maxSize: cap(1200), usefulSize: useful(900, 600)),
-    "Preview":           Priority(tier: "normal", weight: 1.5, maxSize: cap(1000), usefulSize: useful(700, 600)),
+    "Safari":            Priority(tier: "normal", weight: 2.0, maxSize: cap(1200, 2000), usefulSize: useful(900, 600)),
+    "Google Chrome":     Priority(tier: "normal", weight: 2.0, maxSize: cap(1200, 2000), usefulSize: useful(900, 600)),
+    "Arc":               Priority(tier: "normal", weight: 2.0, maxSize: cap(1200, 2000), usefulSize: useful(900, 600)),
+    "Firefox":           Priority(tier: "normal", weight: 2.0, maxSize: cap(1200, 2000), usefulSize: useful(900, 600)),
+    "Preview":           Priority(tier: "normal", weight: 1.5, maxSize: cap(1000, 2000), usefulSize: useful(700, 600)),
 
     // talk to people - a list plus a reading pane needs real width
-    "Microsoft Outlook": Priority(tier: "normal", weight: 1.4, maxSize: cap(1300), usefulSize: useful(900, 600)),
-    "Mail":              Priority(tier: "normal", weight: 1.4, maxSize: cap(1100), usefulSize: useful(800, 600)),
-    "Slack":             Priority(tier: "minor",  weight: 1.0, maxSize: cap(820),  usefulSize: useful(600, 500)),
-    "Messages":          Priority(tier: "minor",  weight: 0.7, maxSize: cap(560),  usefulSize: useful(400, 500)),
-    "Discord":           Priority(tier: "minor",  weight: 0.8, maxSize: cap(900),  usefulSize: useful(600, 500)),
+    "Microsoft Outlook": Priority(tier: "normal", weight: 1.4, maxSize: cap(1300, 2000), usefulSize: useful(900, 600)),
+    "Mail":              Priority(tier: "normal", weight: 1.4, maxSize: cap(1100, 2000), usefulSize: useful(800, 600)),
+    "Slack":             Priority(tier: "minor",  weight: 1.0, maxSize: cap(820, 1100),  usefulSize: useful(600, 500)),
+    "Messages":          Priority(tier: "minor",  weight: 0.7, maxSize: cap(560, 1100),  usefulSize: useful(400, 500)),
+    "Discord":           Priority(tier: "minor",  weight: 0.8, maxSize: cap(900, 1100),  usefulSize: useful(600, 500)),
 
     // look things up - small is fine, these are glanced at
     "Finder":            Priority(tier: "minor", weight: 0.8, maxSize: cap(760, 560), usefulSize: useful(520, 360)),

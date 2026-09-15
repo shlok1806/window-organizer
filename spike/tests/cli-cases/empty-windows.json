@@ -1,0 +1,9 @@
+{
+  "_comment": "A display with nothing on it. --json must still emit a valid, empty plan rather than human text. Regression for issue #14.",
+  "now": "2026-09-15T10:00:00Z",
+  "displays": [
+    { "idx": 0, "usable": { "x": 0, "y": 0, "w": 1200, "h": 800 } }
+  ],
+  "focus": [],
+  "windows": []
+}

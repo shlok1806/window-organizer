@@ -1,0 +1,26 @@
+{
+  "_comment": "Two windows sharing an id. Identity is load-bearing now - recency scoring and the planned-versus-actual match both key on it - so a duplicate silently corrupts both. Regression for issue #19.",
+  "now": "2026-09-15T10:00:00Z",
+  "displays": [
+    { "idx": 0, "usable": { "x": 0, "y": 0, "w": 1200, "h": 800 } }
+  ],
+  "focus": [],
+  "windows": [
+    {
+      "id": 7,
+      "app": "WezTerm",
+      "title": "a",
+      "rect": { "x": 0, "y": 0, "w": 600, "h": 500 },
+      "minSize": { "w": 10, "h": 10 },
+      "focused": true
+    },
+    {
+      "id": 7,
+      "app": "Finder",
+      "title": "b",
+      "rect": { "x": 0, "y": 0, "w": 600, "h": 500 },
+      "minSize": { "w": 10, "h": 10 },
+      "focused": false
+    }
+  ]
+}

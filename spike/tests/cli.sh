@@ -39,6 +39,30 @@ check "--plan-from with no value is a usage error" 2 "$BIN" --plan-from
 check "absurd minSize does not crash (human output)" 0 "$BIN" --plan-from cli-cases/absurd-minsize.json
 check "absurd minSize does not crash (json output)"  0 "$BIN" --plan-from cli-cases/absurd-minsize.json --json
 
+# --json must always emit machine-readable output, including on the paths that
+# previously printed human text and exited early. See issue #14.
+check "empty windows still exits 0" 0 "$BIN" --plan-from cli-cases/empty-windows.json --json
+if "$BIN" --plan-from cli-cases/empty-windows.json --json 2>/dev/null | jq -e . >/dev/null 2>&1; then
+    echo "ok   empty windows emits valid json"
+    pass=$((pass + 1))
+else
+    echo "FAIL empty windows emits valid json"
+    fail=$((fail + 1))
+fi
+
+# A typo must not be indistinguishable from a correct command on a tool that moves
+# windows. See issue #16.
+check "unknown flag is rejected" 2 "$BIN" --plan-from cli-cases/empty-windows.json --nope
+
+# Claiming a hero that is not present tells the user one thing and does another.
+# See issue #15.
+check "--hero naming an absent app is rejected" 2 \
+    "$BIN" --plan-from cases/single-window-fits.json --hero NoSuchApp
+
+# Malformed input must be rejected, not silently coerced to zero. See issue #19.
+check "minSize as strings is rejected" 2 "$BIN" --plan-from cli-cases/string-minsize.json
+check "duplicate window ids are rejected" 2 "$BIN" --plan-from cli-cases/duplicate-ids.json
+
 echo ""
 echo "$pass passed, $fail failed"
 [ "$fail" -eq 0 ]

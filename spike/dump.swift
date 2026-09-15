@@ -77,6 +77,7 @@ struct Mess {
     let deadSpacePct: Double    // % of screen showing desktop
     let overlapPct: Double      // % of screen where >=2 windows stack
     let wastedPct: Double       // hidden window pixels / total window pixels
+    let offScreenPct: Double    // window pixels pushed outside the display entirely
     let occludedWindows: Int    // windows >50% buried
 }
 
@@ -120,12 +121,26 @@ func measure(_ wins: [Win], screen: ScreenInfo, cell: CGFloat = 8) -> Mess {
         if own > 0, Double(hid) / Double(own) > 0.5 { buried += 1 }
     }
 
+    // Pixels pushed past a display edge are exactly as useless as pixels buried under
+    // another window, but the grid above only counts what lands inside the screen, so
+    // a window hanging half off read as 0% waste. See issue #20.
+    var ownedArea: Double = 0
+    var offScreen: Double = 0
+    for w in mine {
+        let whole = Double(w.rect.width * w.rect.height)
+        let inside = w.rect.intersection(screen.rect)
+        let visible = inside.isNull ? 0 : Double(inside.width * inside.height)
+        ownedArea += whole
+        offScreen += whole - visible
+    }
+
     return Mess(screenIdx: screen.idx,
                 windows: mine.count,
                 coveragePct: Double(covered) / total * 100,
                 deadSpacePct: (total - Double(covered)) / total * 100,
                 overlapPct: Double(stacked) / total * 100,
                 wastedPct: windowCellSum > 0 ? Double(hiddenCells) / Double(windowCellSum) * 100 : 0,
+                offScreenPct: ownedArea > 0 ? offScreen / ownedArea * 100 : 0,
                 occludedWindows: buried)
 }
 
@@ -151,6 +166,7 @@ func jsonSample(_ wins: [Win], _ screens: [ScreenInfo], _ mess: [Mess], titlesOK
              "dead_space_pct": round($0.deadSpacePct * 10) / 10,
              "overlap_pct": round($0.overlapPct * 10) / 10,
              "wasted_pct": round($0.wastedPct * 10) / 10,
+             "off_screen_pct": round($0.offScreenPct * 10) / 10,
              "buried_windows": $0.occludedWindows]
         },
     ]
@@ -191,6 +207,7 @@ func printHuman(_ wins: [Win], _ screens: [ScreenInfo], _ mess: [Mess], titlesOK
         print("    desktop showing     \(String(format: "%5.1f%%", m.deadSpacePct))")
         print("    stacked (2+ deep)   \(String(format: "%5.1f%%", m.overlapPct))")
         print("    window px hidden    \(String(format: "%5.1f%%", m.wastedPct))   \(dim)<- the actual waste\(off)")
+        print("    window px off-screen\(String(format: "%5.1f%%", m.offScreenPct))   \(dim)<- pushed past the edge\(off)")
         print("    windows >50% buried \(m.occludedWindows)")
         print("")
     }
