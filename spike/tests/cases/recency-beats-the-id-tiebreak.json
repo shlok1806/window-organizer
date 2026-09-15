@@ -1,0 +1,28 @@
+{
+  "_comment": "Two windows identical on tier and size, on a display that holds one. Window 10 was focused a minute ago; window 11 has not been touched. Window 10 must survive - even though the id tiebreak alone would keep 11, the newer one. Proves recency outranks the fallback rather than merely tying with it. Issue #2, part b.",
+  "now": "2026-09-15T10:00:00Z",
+  "displays": [
+    { "idx": 0, "usable": { "x": 0, "y": 0, "w": 600, "h": 600 } }
+  ],
+  "focus": [
+    { "id": 10, "at": "2026-09-15T09:59:00Z" }
+  ],
+  "windows": [
+    {
+      "id": 10,
+      "app": "Finder",
+      "title": "used a minute ago",
+      "rect": { "x": 0, "y": 0, "w": 500, "h": 400 },
+      "minSize": { "w": 10, "h": 10 },
+      "focused": false
+    },
+    {
+      "id": 11,
+      "app": "Finder",
+      "title": "newer, but never touched",
+      "rect": { "x": 20, "y": 20, "w": 500, "h": 400 },
+      "minSize": { "w": 10, "h": 10 },
+      "focused": false
+    }
+  ]
+}
