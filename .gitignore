@@ -7,3 +7,5 @@ spike/wprobe
 
 .DS_Store
 *.o
+spike/warrange
+spike/wftest/t
