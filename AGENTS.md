@@ -72,6 +72,93 @@ Two separate TCC grants, and neither can be assumed:
 Degrade rather than fail when one is missing: without Screen Recording the layout engine must
 fall back to app identity alone.
 
+## Building and testing
+
+```sh
+cd spike
+./build.sh            # builds wdump, wprobe, warrange, wfocus
+./tests/run.sh        # golden-file plans
+./tests/cli.sh        # exit codes and refusals
+./install.sh          # copies binaries to ~/.local/bin
+```
+
+**Swift will only accept top-level code in a file named `main.swift`.** `warrange` therefore
+lives in `spike/main.swift` and `wfocus` in `spike/focus/main.swift`. Adding a new tool means
+a new directory with its own `main.swift`, not a descriptively named file. This has bitten
+twice; the error is `statements are not allowed at the top level`.
+
+### The test seam
+
+`warrange --plan-from <fixture.json> --json` plans a **recorded** desktop: no Accessibility,
+no clock, no live windows, and it cannot move anything. This is the only seam. Everything
+interesting - config loading, scoring, packing, layout, output - runs behind it.
+
+Capture a real desktop as a fixture with `wdump --json`. Any bug report becomes a permanent
+regression test by redirect, which is how the 84 fixtures in `audit/` were produced.
+
+A golden case is two files, plus an optional third:
+
+```
+tests/cases/<name>.json        the recorded desktop
+tests/expected/<name>.json     the plan it must produce
+tests/cases/<name>.flags       optional extra flags, e.g. --spill or --master 0.6
+```
+
+**Derive expected values from the spec, never from running the code**, or the test passes by
+construction and can never disagree with the implementation.
+
+One trap worth knowing: a fixture can pass *before* the fix if its input order happens to
+match the buggy behaviour. The eviction-tiebreak case needed a second, reversed fixture to
+actually catch anything.
+
+### Hermetic by design
+
+Planning from a fixture uses built-in defaults and never reads `~/.window-spike/`. A test
+that depends on whatever the operator last edited is not a test.
+
+## How the layout engine works
+
+Seven stages in `spike/main.swift`:
+
+1. **Gather** - intersect CGWindowList with AX. Refuse if Mission Control is open; skip
+   fullscreen and non-settable windows.
+2. **Measure** - learn each app's technical minimum by requesting 1x1 and reading the
+   refusal. Cached to disk.
+3. **Score** - tier and weight from config, the hero (the focused *window*), and a decayed
+   focus-recency score.
+4. **Effective size** - `max(technical minimum, useful size)`. This is the single definition
+   of how small a window may be planned; `effectiveSize()` exists because three call sites
+   each had their own idea and one of them contradicted the rule written in this file.
+5. **Select and place** - route banish tier onward, optionally reserve a master slab, shelf
+   pack into rows, evict and retry until it fits.
+6. **Distribute** - water-fill leftover space by weight, honouring caps, returning a capped
+   window's unused share to windows that can still use it.
+7. **Apply** - save undo, then size, position, size again. Unplaced windows are stowed.
+
+Eviction order is the part that matters most, and every line of it was a bug once:
+
+```
+1. unsatisfiable at any size   (else one oversized window empties the desktop)
+2. lowest tier
+3. lowest recency              (behaviour beats geometry)
+4. largest area
+5. lowest id                   (oldest; never array order, which is not stable)
+```
+
+## State on disk, outside the repo
+
+None of this is version controlled, and all of it is regenerable:
+
+- `~/.window-spike/priorities.json` - per-app tiers, weights, caps, useful sizes. Seeded on
+  first run and then owned by the user; loading overlays the file onto built-in defaults so
+  a config written by an older version inherits new fields rather than losing them.
+- `~/.window-spike/minsizes.json` - measured technical minimums. **Keyed by app, which is
+  wrong** - minimums vary per window (#33).
+- `~/.window-spike/focus.jsonl` - the recency log. Window ids and timestamps only.
+- `~/.window-spike/undo.json` - geometry from the last apply.
+- `~/Library/LaunchAgents/com.windoworganizer.wfocus.plist` - the recorder.
+- `~/.config/skhd/skhdrc` - hotkeys, inside a marked block that `setup-hotkey.sh` owns.
+
 ## Agent skills
 
 ### Issue tracker
